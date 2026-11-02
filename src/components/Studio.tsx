@@ -5,17 +5,16 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Plus, Send, Sparkles } from "lucide-react";
 import { describeClick, type PageLink } from "@/lib/gui/links";
-import { pageCommand, pageFromTemplate, savePages, usePages, type GuiPage } from "@/lib/gui/pages";
-import { TEMPLATES, type Template } from "@/lib/gui/templates";
+import { blankPage, isUntouched, pageCommand, pagesFromTemplate, savePages, usePages, type GuiPage } from "@/lib/gui/pages";
+import type { Template } from "@/lib/gui/templateLibrary";
 import { SITE_NAME } from "@/lib/site";
 import { ClickLog, type ClickLogLine } from "./ClickLog";
 import { ExportMenu } from "./ExportMenu";
 import { LinksPanel } from "./LinksPanel";
 import { Logo } from "./Logo";
-import { MapView } from "./MapView";
+import { PageDetails } from "./PageDetails";
 import { PagesPanel } from "./PagesPanel";
 import { Preview } from "./Preview";
-import { TemplatePicker } from "./TemplatePicker";
 import { ThemeToggle } from "./ThemeToggle";
 import { Segmented } from "./ui";
 
@@ -24,6 +23,12 @@ const CodeEditor = dynamic(() => import("./CodeEditor"), {
   ssr: false,
   loading: () => <div className="absolute inset-0 animate-pulse bg-surface" />,
 });
+// So are the map and the template pages, which only load when opened.
+const MapView = dynamic(() => import("./MapView"), {
+  ssr: false,
+  loading: () => <div className="canvas-dots flex-1" />,
+});
+const TemplatePicker = dynamic(() => import("./TemplatePicker").then((m) => m.TemplatePicker), { ssr: false });
 
 const MAX_LOG_LINES = 8;
 
@@ -82,12 +87,21 @@ export default function Studio() {
 
   const updatePage = (patch: Partial<GuiPage>) => savePages(pages.map((p) => (p.id === page.id ? { ...p, ...patch } : p)));
 
-  const addFromTemplate = (template: Template) => {
-    const created = pageFromTemplate(template, pages);
+  const addBlankPage = () => {
+    const created = blankPage(pages);
     savePages([...pages, created]);
     open(created.id);
-    setPicking(false);
     if (view === "map") setView("page");
+  };
+
+  // A template is a whole project with its own first page, so it takes the place of the current pages.
+  const applyTemplate = (template: Template) => {
+    if (!isUntouched(pages) && !window.confirm(`Replace your ${pages.length === 1 ? "page" : `${pages.length} pages`} with the ${template.name} template? This cannot be undone.`)) return;
+    const created = pagesFromTemplate(template);
+    savePages(created);
+    open(created[0].id);
+    setLog([]);
+    setPicking(false);
   };
 
   const deletePage = (target: GuiPage) => {
@@ -142,7 +156,7 @@ export default function Studio() {
           <Logo size={28} />
           <span className="hidden text-[15px] font-semibold tracking-tight text-gold lg:inline">{SITE_NAME}</span>
         </Link>
-        <button type="button" className="btn-ghost" aria-label="New page" onClick={() => addFromTemplate(TEMPLATES[0])}>
+        <button type="button" className="btn-ghost" aria-label="New page" onClick={addBlankPage}>
           <Plus className="size-3.5" aria-hidden />
           <span className="hidden lg:inline">New</span>
         </button>
@@ -164,17 +178,21 @@ export default function Studio() {
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <PagesPanel pages={pages} active={page} onOpen={open} onAdd={() => addFromTemplate(TEMPLATES[0])} onDelete={deletePage} onCopyCommand={copyCommand} />
+        <PagesPanel pages={pages} active={page} onOpen={open} onAdd={addBlankPage} onDelete={deletePage} onCopyCommand={copyCommand} />
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           {view === "map" && (
             <MapView
               pages={pages}
+              selectedId={page.id}
+              onSelect={open}
               onOpen={(id) => {
                 open(id);
                 setView("page");
               }}
-            />
+            >
+              <AiComposer pageTitle={page.title} />
+            </MapView>
           )}
 
           {view === "page" && (
@@ -228,12 +246,16 @@ export default function Studio() {
 
         {view !== "code" && (
           <aside className="shrink-0 overflow-y-auto border-t border-line bg-bg md:w-64 md:border-l md:border-t-0 lg:w-72">
-            <LinksPanel page={page} pages={pages} selected={selectedLink} onChange={(html) => updatePage({ html })} />
+            {view === "map" ? (
+              <PageDetails page={page} pages={pages} onChange={(html) => updatePage({ html })} onOpen={() => setView("page")} onDelete={() => deletePage(page)} />
+            ) : (
+              <LinksPanel page={page} pages={pages} selected={selectedLink} onChange={(html) => updatePage({ html })} />
+            )}
           </aside>
         )}
       </div>
 
-      {picking && <TemplatePicker onPick={addFromTemplate} onClose={closePicker} />}
+      {picking && <TemplatePicker onPick={applyTemplate} onClose={closePicker} />}
     </div>
   );
 }

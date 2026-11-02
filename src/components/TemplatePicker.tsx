@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
-import { TEMPLATES, type Template } from "@/lib/gui/templates";
+import { TEMPLATES, type Template } from "@/lib/gui/templateLibrary";
 import { Preview } from "./Preview";
 import { IconButton } from "./ui";
 
@@ -21,19 +21,16 @@ export function TemplatePicker({ onPick, onClose }: { onPick: (template: Templat
         role="dialog"
         aria-modal="true"
         aria-labelledby="templates-title"
-        className="flex max-h-full w-full max-w-lg flex-col gap-4 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-4 sm:max-w-3xl"
+        className="flex max-h-full w-full max-w-lg flex-col gap-4 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-4 sm:max-w-3xl lg:max-w-5xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 id="templates-title" className="text-[15px] font-semibold">
-              Templates
-            </h2>
-            <p className="text-[13px] text-muted">Adds a new page. Your other pages stay as they are.</p>
-          </div>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="templates-title" className="text-[15px] font-semibold">
+            Start from a template
+          </h2>
           <IconButton label="Close templates" icon={X} onClick={onClose} />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {TEMPLATES.map((template) => (
             <button
               key={template.id}
@@ -41,10 +38,13 @@ export function TemplatePicker({ onPick, onClose }: { onPick: (template: Templat
               onClick={() => onPick(template)}
               className="flex cursor-pointer flex-col gap-2 rounded-xl border border-line bg-raised/40 p-2 text-left transition-colors hover:border-gold"
             >
-              <Preview html={template.html} title={`${template.name} template preview`} />
-              <span className="px-1 pb-0.5">
-                <span className="block text-[13px] font-semibold">{template.name}</span>
-                <span className="block text-xs text-muted">{template.description}</span>
+              <Preview html={template.pages[0].html} title={`${template.name} template preview`} />
+              <span className="flex flex-col gap-0.5 px-1 pb-0.5">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-[13px] font-semibold">{template.name}</span>
+                  {template.pages.length > 1 && <span className="shrink-0 text-[11px] tabular-nums text-muted">{template.pages.length} pages</span>}
+                </span>
+                <span className="text-xs leading-snug text-muted">{template.description}</span>
               </span>
             </button>
           ))}

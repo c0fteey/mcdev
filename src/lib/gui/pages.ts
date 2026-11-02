@@ -1,7 +1,8 @@
 "use client";
 
 import { createLocalList } from "@/lib/localList";
-import { inlineStylesheet, PAGE_CSS, TEMPLATES, type Template } from "./templates";
+import type { Template } from "./templateLibrary";
+import { BLANK_HTML, inlineStylesheet, PAGE_CSS } from "./templates";
 
 export interface GuiPage {
   id: string;
@@ -19,7 +20,10 @@ const store = createLocalList<GuiPage>("mcgui:pages", isPage);
 export const savePages = store.save;
 
 // Shown until the first edit is saved. The fixed id keeps the server and client render equal.
-const FIRST_PAGE: GuiPage[] = [{ id: "first", title: "New page", file: "menu.html", html: TEMPLATES[0].html }];
+const FIRST_PAGE: GuiPage[] = [{ id: "first", title: "New page", file: "menu.html", html: BLANK_HTML }];
+
+// True while there is nothing to lose by replacing the pages.
+export const isUntouched = (pages: GuiPage[]) => pages.length === 1 && pages[0].html === BLANK_HTML;
 
 export function usePages() {
   const pages = store.useList();
@@ -34,14 +38,14 @@ function uniqueFile(name: string, pages: GuiPage[]) {
   return file;
 }
 
-export function pageFromTemplate(template: Template, pages: GuiPage[]): GuiPage {
-  return {
-    id: crypto.randomUUID(),
-    title: template.id === "blank" ? "New page" : template.name,
-    file: uniqueFile(template.id === "blank" ? "page" : template.name, pages),
-    html: template.html,
-  };
-}
+export const blankPage = (pages: GuiPage[]): GuiPage => ({
+  id: crypto.randomUUID(),
+  title: "New page",
+  file: uniqueFile("page", pages),
+  html: BLANK_HTML,
+});
+
+export const pagesFromTemplate = (template: Template): GuiPage[] => template.pages.map((page) => ({ id: crypto.randomUUID(), ...page }));
 
 // The command that opens a page in game: the file name without .html.
 export const pageCommand = (page: GuiPage) => `/mcgui open ${page.file.replace(/\.html$/, "")}`;

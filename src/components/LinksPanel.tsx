@@ -20,18 +20,24 @@ export function LinksPanel({
   pages,
   selected,
   onChange,
+  heading = "Links on this page",
 }: {
   page: GuiPage;
   pages: GuiPage[];
   selected: number | null;
   onChange: (html: string) => void;
+  heading?: string;
 }) {
   // Links are read with DOMParser, which only exists in the browser.
   const inBrowser = useSyncExternalStore(noSubscribe, () => true, () => false);
   const links = inBrowser ? findLinks(page.html) : [];
   const opensFirst = pages[0].id === page.id;
   const reachedFrom = inBrowser
-    ? pages.filter((p) => p.id !== page.id && findLinks(p.html).some(({ link }) => link.kind === "page" && link.file === page.file))
+    ? pages.flatMap((p) => {
+        if (p.id === page.id) return [];
+        const from = findLinks(p.html).find(({ link }) => link.kind === "page" && link.file === page.file);
+        return from ? [{ page: p, label: from.label }] : [];
+      })
     : [];
 
   const selectedCard = useRef<HTMLDivElement>(null);
@@ -42,7 +48,7 @@ export function LinksPanel({
   return (
     <div className="flex flex-col gap-3 p-3">
       <div className="flex h-5 items-center justify-between gap-2">
-        <h2 className="label">Links on this page</h2>
+        <h2 className="label">{heading}</h2>
         <span className="text-[11px] tabular-nums text-muted">{links.length}</span>
       </div>
 
@@ -100,9 +106,9 @@ export function LinksPanel({
       <div className="flex flex-col gap-1.5 pt-3">
         <h2 className="label">Reached from</h2>
         {opensFirst && <p className="text-[13px] text-muted">It opens first.</p>}
-        {reachedFrom.map((p) => (
-          <p key={p.id} className="truncate text-[13px]">
-            {p.title}
+        {reachedFrom.map(({ page: from, label }) => (
+          <p key={from.id} className="truncate text-[13px]">
+            <span className="font-medium">{from.title}</span> <span className="text-muted">· &quot;{label}&quot;</span>
           </p>
         ))}
         {!opensFirst && reachedFrom.length === 0 && <p className="text-[13px] text-muted">No page links here yet.</p>}

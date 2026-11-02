@@ -1,8 +1,9 @@
 import { ICON_CSS } from "./icons";
 
-// The stylesheet every template links to. It is exported beside the pages as minecraft.css.
+// The stylesheet pages link to. It is exported beside the pages as minecraft.css.
+// One game pixel is 2 CSS px, so every edge and gap is a multiple of 2.
 export const PAGE_CSS = `* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; background: transparent; }
+html, body { height: 100%; margin: 0; overflow: hidden; background: transparent; }
 body {
   font-family: Minecraft, Monocraft, monospace;
   font-size: 16px;
@@ -11,7 +12,10 @@ body {
 }
 p { margin: 0; }
 .pick { display: none; }
+.big { font-size: 24px; }
 .small { font-size: 12px; }
+.gap { height: 8px; }
+.label { color: #404040; text-shadow: none; }
 
 .mc-screen {
   height: 100%;
@@ -23,19 +27,18 @@ p { margin: 0; }
   padding: 16px;
 }
 .mc-title { font-size: 24px; color: #ffffff; text-shadow: 2px 2px 0 #3f3f3f; }
-.mc-title.big { font-size: 32px; text-shadow: 3px 3px 0 #3f3f3f; }
+.mc-hint { font-size: 12px; color: #aaaaaa; text-shadow: 2px 2px 0 #2a2a2a; }
 
 .mc-panel {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: 480px;
   max-width: 100%;
-  padding: 14px;
-  color: #3f3f3f;
+  padding: 16px;
+  color: #404040;
   background: #c6c6c6;
   border: 2px solid #000000;
-  border-radius: 3px;
+  border-radius: 2px;
   box-shadow: inset 2px 2px 0 #ffffff, inset -2px -2px 0 #555555;
 }
 .mc-well {
@@ -44,20 +47,31 @@ p { margin: 0; }
   background: #373737;
   border: 2px solid #555555;
 }
+.mc-well.light { color: #404040; background: #b4b4b4; border-color: #8b8b8b; }
+.mc-paper { padding: 16px; color: #404040; background: #f3ecd3; border: 2px solid #000000; }
+.mc-paper a { color: #2a5ba8; }
+.mc-rule { flex-shrink: 0; height: 2px; background: #8b8b8b; }
 
-.mc-stack, .mc-col { display: flex; flex-direction: column; }
-.mc-stack { gap: 8px; }
-.mc-col { gap: 2px; min-width: 0; }
-.mc-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.mc-col, .mc-stack { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.mc-row { display: flex; align-items: flex-start; gap: 8px; }
 .mc-spread { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mc-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mc-grow { flex: 1; }
+
+.mc-world { inset: 0; width: 100%; height: 100%; background: linear-gradient(#6d94bd, #8dabc6 40%, #6e9153 52%, #3f6a2e 64%, #4b3a26 84%, #2c2016); }
+.mc-world.nether { background: linear-gradient(#3a0f0f, #6b1c12 50%, #2a0a0a); }
+.mc-world.end { background: linear-gradient(#17102b, #2a1f47 55%, #0d0a18); }
+.mc-dim { inset: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); }
 
 .mc-btn {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
+  height: 40px;
+  padding: 0 12px;
   font: inherit;
   text-decoration: none;
   text-shadow: 2px 2px 0 #3f3f3f;
@@ -68,7 +82,15 @@ p { margin: 0; }
   cursor: pointer;
 }
 .mc-btn:hover { color: #ffffa0; border-color: #ffffff; }
-.mc-btn.half { width: 204px; }
+.mc-btn.half { width: 196px; }
+.mc-btn.wide { width: 400px; }
+.mc-btn.small { height: 28px; font-size: 12px; }
+.mc-btn.on {
+  color: #ffff55;
+  text-shadow: 2px 2px 0 #3f3f15;
+  background: #4c4c4c;
+  box-shadow: inset 2px 2px 0 #7a7a7a, inset -2px -2px 0 #3a3a3a;
+}
 .mc-btn.off, .mc-btn[disabled] {
   color: #a0a0a0;
   text-shadow: none;
@@ -77,20 +99,7 @@ p { margin: 0; }
   box-shadow: none;
   cursor: default;
 }
-.mc-btn.wide { width: 100%; }
-.mc-item { flex-direction: column; gap: 4px; padding: 10px 6px; }
-
-.mc-panel h2 { margin: 0; font-size: 20px; font-weight: normal; }
-.label.heading { font-size: 18px; }
-.mc-grow { flex: 1; }
-.mc-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.mc-rule { height: 2px; background: #8b8b8b; }
-.mc-hint { font-size: 12px; color: #aaaaaa; }
-.mc-well.light { color: #3f3f3f; background: #b4b4b4; border-color: #8b8b8b; }
-.mc-paper { padding: 14px; color: #3f3f3f; background: #f3ecd3; border: 2px solid #000000; }
-.mc-world { inset: 0; width: 100%; height: 100%; background: linear-gradient(#6d94bd, #8dabc6 40%, #6e9153 52%, #3f6a2e 64%, #4b3a26 84%, #2c2016); }
-.mc-world.end { background: linear-gradient(#17102b, #2a1f47 55%, #0d0a18); }
-.mc-dim { inset: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); }
+.mc-item { flex-direction: column; gap: 4px; height: auto; padding: 8px 6px; }
 
 .mc-choice {
   display: flex;
@@ -108,6 +117,7 @@ p { margin: 0; }
 
 .mc-key {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   min-width: 20px;
@@ -115,9 +125,46 @@ p { margin: 0; }
   padding: 0 4px;
   font-size: 12px;
   color: #ffffff;
+  text-shadow: none;
   background: #373737;
   border: 2px solid #000000;
 }
+
+.mc-slots { display: flex; flex-wrap: wrap; }
+.mc-slot {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #8b8b8b;
+  box-shadow: inset 2px 2px 0 #373737, inset -2px -2px 0 #ffffff;
+}
+.mc-slot.big { width: 52px; height: 52px; }
+.mc-slot .n {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #3f3f3f;
+}
+
+.mc-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: pixelated;
+}
+.mc-slot .mc-icon { width: 28px; height: 28px; }
+.mc-slot.big .mc-icon, .mc-icon.lg { width: 40px; height: 40px; }
+.mc-icon.sm { width: 12px; height: 12px; }
+${ICON_CSS}
 
 .mc-bar { width: 100%; height: 10px; background: #2b2b2b; border: 2px solid #000000; }
 .mc-bar > i { display: block; width: calc(var(--v, 0) * 100%); height: 100%; background: #55ff55; }
@@ -139,7 +186,7 @@ input:checked + .mc-check { background: #55ff55; }
 .mc-toast {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 12px;
   color: #ffffff;
   background: #212121;
@@ -165,142 +212,48 @@ input:checked + .mc-check { background: #55ff55; }
 }
 .tip:hover > .mc-tooltip { display: block; }
 
-.mc-slot {
-  position: relative;
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: #8b8b8b;
-  box-shadow: inset 2px 2px 0 #373737, inset -2px -2px 0 #ffffff;
-}
-.mc-slots { display: flex; flex-wrap: wrap; }
-.mc-slot.big { width: 54px; height: 54px; }
-.mc-slot .n {
-  position: absolute;
-  right: 1px;
-  bottom: -2px;
-  color: #ffffff;
-  text-shadow: 2px 2px 0 #3f3f3f;
-}
-
-.mc-icon {
-  display: inline-block;
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-  image-rendering: pixelated;
-}
-.mc-icon.sm { width: 12px; height: 12px; }
-.mc-icon.lg { width: 40px; height: 40px; }
-${ICON_CSS}
-
-.c0 { color: #000000; }
-.c1 { color: #0000aa; }
-.c2 { color: #00aa00; }
-.c3 { color: #00aaaa; }
-.c4 { color: #aa0000; }
-.c5 { color: #aa00aa; }
-.c6 { color: #ffaa00; }
-.c7 { color: #aaaaaa; }
-.c8 { color: #555555; }
-.c9 { color: #5555ff; }
-.ca { color: #55ff55; }
-.cb { color: #55ffff; }
-.cc { color: #ff5555; }
-.cd { color: #ff55ff; }
-.ce { color: #ffff55; }
-.cf { color: #ffffff; }
+.c0 { color: #000000; text-shadow: 2px 2px 0 #000000; }
+.c1 { color: #0000aa; text-shadow: 2px 2px 0 #00002a; }
+.c2 { color: #00aa00; text-shadow: 2px 2px 0 #002a00; }
+.c3 { color: #00aaaa; text-shadow: 2px 2px 0 #002a2a; }
+.c4 { color: #aa0000; text-shadow: 2px 2px 0 #2a0000; }
+.c5 { color: #aa00aa; text-shadow: 2px 2px 0 #2a002a; }
+.c6 { color: #ffaa00; text-shadow: 2px 2px 0 #3f2a00; }
+.c7 { color: #aaaaaa; text-shadow: 2px 2px 0 #2a2a2a; }
+.c8 { color: #555555; text-shadow: 2px 2px 0 #151515; }
+.c9 { color: #5555ff; text-shadow: 2px 2px 0 #15153f; }
+.ca { color: #55ff55; text-shadow: 2px 2px 0 #153f15; }
+.cb { color: #55ffff; text-shadow: 2px 2px 0 #153f3f; }
+.cc { color: #ff5555; text-shadow: 2px 2px 0 #3f1515; }
+.cd { color: #ff55ff; text-shadow: 2px 2px 0 #3f153f; }
+.ce { color: #ffff55; text-shadow: 2px 2px 0 #3f3f15; }
+.cf { color: #ffffff; text-shadow: 2px 2px 0 #3f3f3f; }
 `;
 
 // For a page that travels without minecraft.css beside it.
 export const inlineStylesheet = (html: string, extraHead = "") =>
   html.replace(/<link[^>]*href=["']minecraft\.css["'][^>]*>/i, () => `${extraHead}<style>${PAGE_CSS}</style>`);
 
-const page = (title: string, body: string) => `<!doctype html>
+// What New and the plus button add.
+export const BLANK_HTML = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="ui:size" content="16x9">
     <meta name="ui:overlay" content="rgba(0, 0, 0, 0.25) blur">
-    <title>${title}</title>
+    <title>New page</title>
     <link rel="stylesheet" href="minecraft.css">
   </head>
   <body>
     <div class="mc-screen">
-${body}
+      <div class="mc-title big">New page</div>
+      <div class="mc-panel" style="width: 480px">
+        <div class="label">Hello, {player}!</div>
+      </div>
+      <div class="mc-row">
+        <a class="mc-btn half" data-action="close" data-key="q">Done</a>
+      </div>
     </div>
   </body>
 </html>
 `;
-
-export interface Template {
-  id: string;
-  name: string;
-  description: string;
-  html: string;
-}
-
-export const TEMPLATES: Template[] = [
-  {
-    id: "blank",
-    name: "Blank",
-    description: "A title, a panel and a close button.",
-    html: page(
-      "New page",
-      `      <div class="mc-title big">New page</div>
-      <div class="mc-panel"><div class="mc-well">Hello, {player}!</div></div>
-      <a class="mc-btn half" data-action="close" data-key="q">Done</a>`,
-    ),
-  },
-  {
-    id: "menu",
-    name: "Server menu",
-    description: "A hub with buttons that run commands.",
-    html: page(
-      "Server menu",
-      `      <div class="mc-title big">Server menu</div>
-      <div class="mc-panel">Welcome back, {player}. {online} of {max} players are online.</div>
-      <div class="mc-stack">
-        <a class="mc-btn half" data-command="spawn" data-close data-sound="ui.button.click">Spawn</a>
-        <a class="mc-btn half" data-command="kit daily" data-close data-sound="ui.button.click">Daily kit</a>
-        <a class="mc-btn half" data-action="close" data-key="q">Close</a>
-      </div>`,
-    ),
-  },
-  {
-    id: "shop",
-    name: "Shop",
-    description: "A grid of items that each run a buy command.",
-    html: page(
-      "Shop",
-      `      <div class="mc-title big">Shop</div>
-      <div class="mc-panel mc-grid">
-        <button class="mc-btn mc-item" data-command="buy bread" data-sound="entity.villager.yes"><i class="mc-icon lg i-bread"></i>Bread<span class="ca">5 coins</span></button>
-        <button class="mc-btn mc-item" data-command="buy apple" data-sound="entity.villager.yes"><i class="mc-icon lg i-apple"></i>Apple<span class="ca">2 coins</span></button>
-        <button class="mc-btn mc-item" data-command="buy iron_pickaxe" data-sound="entity.villager.yes"><i class="mc-icon lg i-pickaxe"></i>Pickaxe<span class="ca">40 coins</span></button>
-      </div>
-      <a class="mc-btn half" data-action="close" data-key="q">Close</a>`,
-    ),
-  },
-  {
-    id: "rules",
-    name: "Rules",
-    description: "A numbered list and an agree button.",
-    html: page(
-      "Rules",
-      `      <div class="mc-title big">Server rules</div>
-      <div class="mc-panel mc-stack">
-        <div>1. Be kind in chat.</div>
-        <div>2. No cheats or hacked clients.</div>
-        <div>3. Do not grief other players.</div>
-      </div>
-      <a class="mc-btn half" data-action="close">I agree</a>`,
-    ),
-  },
-];

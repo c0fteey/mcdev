@@ -21,7 +21,14 @@ const SAMPLE_VALUES: Record<string, string> = {
 };
 
 // PlaceholderAPI values the templates and pasted pages commonly use.
-const SAMPLE_PLACEHOLDERS: Record<string, string> = { "%vault_eco_balance%": "12,450" };
+const SAMPLE_PLACEHOLDERS: Record<string, string> = {
+  "%vault_eco_balance%": "12,450",
+  "%luckperms_primary_group_name%": "Member",
+  "%statistic_player_kills%": "1,284",
+  "%statistic_deaths%": "37",
+  "%statistic_mine_block%": "48,210",
+  "%statistic_time_played%": "86h",
+};
 
 // Browsers do not have MC GUI's built-in fonts, so the preview serves them itself.
 // "Minecraft" is Mac's Minecraft, the same font MC GUI bundles under that name.
@@ -41,7 +48,9 @@ const LINK_OUTLINES = `<style>${LINK_SELECTOR} { outline: 2px dashed #e2b33c; ou
 function toPreviewDocument(html: string, showLinks: boolean) {
   const page = inlineStylesheet(html, PREVIEW_HEAD)
     .replace(/\{(\w+)\}/g, (match, key: string) => SAMPLE_VALUES[key] ?? match)
-    .replace(/%\w+%/g, (match) => SAMPLE_PLACEHOLDERS[match] ?? match);
+    .replace(/%\w+%/g, (match) => SAMPLE_PLACEHOLDERS[match] ?? match)
+    // MC GUI draws head:NAME itself; the browser asks a public skin service for the face.
+    .replace(/src=(["'])head:([\w-]+)\1/g, (_, quote: string, name: string) => `src=${quote}https://mc-heads.net/avatar/${name}/64${quote}`);
   return showLinks ? page + LINK_OUTLINES : page;
 }
 
