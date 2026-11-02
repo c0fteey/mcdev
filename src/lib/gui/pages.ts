@@ -94,6 +94,13 @@ export const blankPage = (pages: GuiPage[]): GuiPage => ({
 
 export const pagesFromTemplate = (template: Template): GuiPage[] => template.pages.map((page) => ({ id: crypto.randomUUID(), ...page }));
 
+// A page's name lives in its <title>, so the code and the page list always agree.
+export const titleInHtml = (html: string) => new DOMParser().parseFromString(html, "text/html").title.trim();
+
+const escapeTitle = (title: string) => title.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+export const htmlWithTitle = (html: string, title: string) => html.replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${escapeTitle(title)}</title>`);
+
 // The command that opens a page in game: the file name without .html.
 export const pageCommand = (page: GuiPage) => `/mcgui open ${page.file.replace(/\.html$/, "")}`;
 

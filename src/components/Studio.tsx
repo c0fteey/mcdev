@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Send, Sparkles } from "lucide-react";
 import { describeClick, elementPath, renameLinks, type PageLink } from "@/lib/gui/links";
-import { blankPage, firstBlankPage, pageCommand, pagesFromTemplate, useProjects, type GuiPage } from "@/lib/gui/pages";
+import { blankPage, firstBlankPage, htmlWithTitle, pageCommand, pagesFromTemplate, titleInHtml, useProjects, type GuiPage } from "@/lib/gui/pages";
 import type { Template } from "@/lib/gui/templateLibrary";
 import { SITE_NAME } from "@/lib/site";
 import { ClickLog, type ClickLogLine } from "./ClickLog";
@@ -89,6 +89,13 @@ export default function Studio() {
   };
 
   const updatePage = (patch: Partial<GuiPage>) => savePages(pages.map((p) => (p.id === page.id ? { ...p, ...patch } : p)));
+
+  const updateHtml = (html: string) => {
+    const title = titleInHtml(html);
+    updatePage(title ? { html, title } : { html });
+  };
+
+  const updateTitle = (title: string) => updatePage({ title, html: htmlWithTitle(page.html, title) });
 
   // Deleting happens at once, with a moment to take it back.
   const offerUndo = (message: string) => setUndo({ message, pages, activeId: page.id });
@@ -255,7 +262,7 @@ export default function Studio() {
                     maxLength={40}
                     className="h-7 min-w-0 max-w-44 rounded-md border border-transparent bg-transparent px-1.5 text-[13px] font-semibold outline-none transition-colors [field-sizing:content] hover:border-line focus:border-gold"
                     value={page.title}
-                    onChange={(e) => updatePage({ title: e.target.value })}
+                    onChange={(e) => updateTitle(e.target.value)}
                   />
                   <input
                     key={page.file}
@@ -290,7 +297,7 @@ export default function Studio() {
               <div className="flex min-h-0 flex-col border-b border-line md:border-b-0 md:border-r">
                 <div className="relative h-96 min-h-0 flex-1 md:h-auto">
                   {/* A new key per page, so undo never brings back another page's code */}
-                  <CodeEditor key={page.id} value={page.html} onChange={(html) => updatePage({ html })} />
+                  <CodeEditor key={page.id} value={page.html} onChange={updateHtml} />
                 </div>
                 <p className="flex h-8 shrink-0 items-center justify-between gap-2 border-t border-line px-3 text-[11px] text-muted">
                   <span className="truncate font-mono">{page.file}</span>
@@ -309,9 +316,9 @@ export default function Studio() {
         {view !== "code" && (
           <aside className="shrink-0 overflow-y-auto border-t border-line bg-bg md:w-64 md:border-l md:border-t-0 lg:w-72">
             {view === "map" ? (
-              <PageDetails page={page} pages={pages} onChange={(html) => updatePage({ html })} onOpen={() => setView("page")} onDelete={() => deletePage(page)} />
+              <PageDetails page={page} pages={pages} onChange={updateHtml} onOpen={() => setView("page")} onDelete={() => deletePage(page)} />
             ) : (
-              <LinksPanel page={page} pages={pages} selectedPath={choosing ? selectedPath : null} onChange={(html) => updatePage({ html })} />
+              <LinksPanel page={page} pages={pages} selectedPath={choosing ? selectedPath : null} onChange={updateHtml} />
             )}
           </aside>
         )}
