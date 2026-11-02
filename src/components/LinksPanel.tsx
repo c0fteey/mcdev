@@ -40,28 +40,28 @@ export function LinksPanel({
   }, [selected]);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-col gap-3 p-3">
+      <div className="flex h-5 items-center justify-between gap-2">
         <h2 className="label">Links on this page</h2>
-        <span className="text-xs text-muted">{links.length}</span>
+        <span className="text-[11px] tabular-nums text-muted">{links.length}</span>
       </div>
 
       {links.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           {links.map(({ label, tag, key, link }, index) => (
             <div
               key={index}
               ref={index === selected ? selectedCard : undefined}
-              className={`flex flex-col gap-2 rounded-xl border bg-surface p-3 transition-colors ${index === selected ? "border-gold" : "border-line"}`}
+              className={`flex flex-col gap-2 rounded-xl border bg-surface p-2.5 transition-colors ${index === selected ? "border-gold" : "border-line"}`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-sm font-semibold">{label}</span>
-                <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted">
+                <span className="min-w-0 truncate text-[13px] font-semibold">{label}</span>
+                <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-muted">
                   {tag}
-                  {key && <kbd className="rounded border border-line px-1.5 py-0.5 font-mono text-[11px] uppercase text-gold">{key}</kbd>}
+                  {key && <kbd className="rounded border border-line px-1 font-mono text-[11px] uppercase text-gold">{key}</kbd>}
                 </span>
               </div>
-              <Select label={`Action for ${label}`} value={linkValue(link)} onChange={(v) => onChange(setLink(page.html, index, linkFromValue(v, link)))}>
+              <Select compact label={`Action for ${label}`} value={linkValue(link)} onChange={(v) => onChange(setLink(page.html, index, linkFromValue(v, link)))}>
                 <SelectItem value="none">Nothing</SelectItem>
                 <SelectItem value="close">Close the page</SelectItem>
                 <SelectItem value="back">Go back</SelectItem>
@@ -77,7 +77,7 @@ export function LinksPanel({
               {link.kind === "command" && (
                 <input
                   aria-label={`Command for ${label}`}
-                  className="input font-mono"
+                  className="input-sm font-mono !text-xs"
                   placeholder="spawn"
                   spellCheck={false}
                   value={link.command}
@@ -89,21 +89,21 @@ export function LinksPanel({
         </div>
       )}
 
-      <p className="text-sm text-muted">
+      <p className="text-[13px] leading-snug text-muted">
         {links.length > 0
           ? "Click a button on the page to find it here, then choose what it does."
           : "This page has no buttons or links yet. Add one in the Code view."}
       </p>
 
-      <div className="flex flex-col gap-2 pt-2">
+      <div className="flex flex-col gap-1.5 pt-3">
         <h2 className="label">Reached from</h2>
-        {opensFirst && <p className="text-sm text-muted">It opens first.</p>}
+        {opensFirst && <p className="text-[13px] text-muted">It opens first.</p>}
         {reachedFrom.map((p) => (
-          <p key={p.id} className="truncate text-sm">
+          <p key={p.id} className="truncate text-[13px]">
             {p.title}
           </p>
         ))}
-        {!opensFirst && reachedFrom.length === 0 && <p className="text-sm text-muted">No page links here yet.</p>}
+        {!opensFirst && reachedFrom.length === 0 && <p className="text-[13px] text-muted">No page links here yet.</p>}
       </div>
     </div>
   );

@@ -92,6 +92,15 @@
     background-color: var(--color-muted);
   }
 
+  ::selection {
+    background: rgb(226 179 60 / 0.3);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-gold);
+  }
+
   h1,
   h2 {
     text-wrap: balance;
@@ -114,18 +123,23 @@
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-raised px-4 py-2.5 text-sm font-medium transition-colors hover:border-muted disabled:pointer-events-none disabled:opacity-40;
   }
+  /* Disabled stays hoverable so its "coming soon" tooltip can show */
   .btn-gold {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-black transition hover:brightness-110 disabled:pointer-events-none disabled:opacity-40;
+    @apply inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gold px-3 text-[13px] font-semibold text-black transition-[filter,scale] duration-150 hover:brightness-110 active:scale-[0.96] pointer-coarse:h-10 disabled:cursor-not-allowed disabled:bg-gold/15 disabled:text-gold-soft disabled:hover:brightness-100 disabled:active:scale-100;
   }
   .card {
     @apply rounded-2xl border border-line bg-surface/90 shadow-2xl shadow-black/20 backdrop-blur-sm;
   }
   .label {
-    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+    @apply text-[11px] font-semibold uppercase tracking-wider text-muted;
   }
   /* Quiet top bar action */
   .btn-ghost {
-    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-ink transition-colors hover:bg-raised sm:px-2.5 disabled:pointer-events-none disabled:opacity-40;
+    @apply inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2 text-[13px] font-medium text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink active:scale-[0.96] pointer-coarse:h-10 pointer-coarse:min-w-10 lg:px-2.5;
+  }
+  /* The one size for inputs inside the editor's panels */
+  .input-sm {
+    @apply h-8 w-full rounded-lg border border-line bg-raised px-2.5 text-[13px] outline-none transition-colors placeholder:text-muted focus:border-gold pointer-coarse:h-10;
   }
   /* The editor's work surface */
   .canvas-dots {

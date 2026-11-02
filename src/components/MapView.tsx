@@ -17,14 +17,14 @@ export function MapView({ pages, onOpen }: { pages: GuiPage[]; onOpen: (id: stri
               key={page.id}
               type="button"
               onClick={() => onOpen(page.id)}
-              className="flex cursor-pointer flex-col gap-3 rounded-xl border border-line bg-surface p-3 text-left transition-colors hover:border-gold"
+              className="flex cursor-pointer flex-col gap-2 rounded-xl border border-line bg-surface p-2 text-left transition-colors hover:border-gold"
             >
               <Preview html={page.html} title={`${page.title} preview`} />
-              <span className="flex items-center justify-between gap-2">
-                <span className="truncate text-sm font-semibold">{page.title}</span>
-                {index === 0 && <span className="shrink-0 text-xs text-gold-soft">Opens first</span>}
+              <span className="flex items-center justify-between gap-2 px-1">
+                <span className="truncate text-[13px] font-semibold">{page.title}</span>
+                {index === 0 && <span className="shrink-0 text-[11px] text-gold-soft">Opens first</span>}
               </span>
-              <span className="flex min-h-4 flex-wrap items-center gap-1.5 text-xs text-muted">
+              <span className="flex min-h-4 flex-wrap items-center gap-1.5 px-1 pb-0.5 text-xs text-muted">
                 {targets.length === 0 && "Links to no other page"}
                 {targets.map((target) => (
                   <span key={target.id} className="inline-flex items-center gap-1">

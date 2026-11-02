@@ -72,11 +72,11 @@ export function IconButton({
       aria-pressed={active}
       onClick={onClick}
       disabled={disabled}
-      className={`grid size-8 place-items-center rounded-lg transition-colors disabled:opacity-30 ${
+      className={`relative grid size-7 shrink-0 place-items-center rounded-md transition-[background-color,color,scale] duration-150 after:absolute after:-inset-1 active:scale-[0.96] disabled:opacity-30 pointer-coarse:size-9 ${
         active ? "bg-gold text-black" : "text-muted hover:bg-raised hover:text-ink"
       }`}
     >
-      <Icon className="size-4" aria-hidden />
+      <Icon className="size-3.5" aria-hidden />
     </button>
   );
 }
@@ -95,18 +95,20 @@ export function Select({
   value,
   onChange,
   label,
+  compact,
   children,
 }: {
   value: string;
   onChange: (v: string) => void;
   label: string;
+  compact?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <SelectPrimitive.Root value={value} onValueChange={onChange}>
       <SelectPrimitive.Trigger
         aria-label={label}
-        className="input group flex cursor-pointer items-center justify-between gap-3 text-left data-[state=open]:border-gold [&>span]:min-w-0"
+        className={`${compact ? "input-sm !w-fit max-w-full gap-2" : "input gap-3"} group flex cursor-pointer items-center justify-between text-left data-[state=open]:border-gold [&>span]:min-w-0 [&>span]:truncate`}
       >
         <SelectPrimitive.Value />
         <SelectPrimitive.Icon>
@@ -173,7 +175,7 @@ export function Segmented<T extends string>({
   label: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex w-fit max-w-full gap-1 overflow-x-auto rounded-xl border border-line bg-raised p-1 [scrollbar-width:none]">
+    <div role="radiogroup" aria-label={label} className="inline-flex w-fit max-w-full shrink-0 gap-0.5 overflow-x-auto rounded-lg border border-line bg-surface p-0.5 [scrollbar-width:none]">
       {options.map((o) => (
         <button
           key={o.value}
@@ -182,11 +184,11 @@ export function Segmented<T extends string>({
           aria-checked={value === o.value}
           aria-label={o.label}
           onClick={() => onChange(o.value)}
-          className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg py-1.5 text-sm font-medium transition-colors ${o.icon ? "px-2.5 sm:px-3" : "px-4"} ${
-            value === o.value ? "bg-gold text-black" : "text-muted hover:text-ink"
+          className={`inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md text-[13px] font-medium transition-[background-color,color,scale] duration-150 active:scale-[0.96] pointer-coarse:h-9 ${o.icon ? "px-2 sm:px-2.5" : "px-3"} ${
+            value === o.value ? "bg-gold/15 text-gold" : "text-muted hover:text-ink"
           }`}
         >
-          {o.icon && <o.icon className="size-4" aria-hidden />}
+          {o.icon && <o.icon className="size-3.5" aria-hidden />}
           {/* With an icon, phones show the icon alone so the top bar fits */}
           <span className={o.icon ? "hidden sm:inline" : undefined}>{o.label}</span>
         </button>

@@ -39,12 +39,14 @@ export function Preview({
   title,
   onClickLink,
   fill,
+  thumbnail,
   showLinks = false,
 }: {
   html: string;
   title: string;
   onClickLink?: (link: PageLink, index: number) => void;
   fill?: boolean;
+  thumbnail?: boolean;
   showLinks?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -70,7 +72,9 @@ export function Preview({
   return (
     <div ref={box} className={`flex items-center justify-center overflow-hidden ${fill ? "size-full" : "aspect-video w-full"}`}>
       <div
-        className="relative shrink-0 overflow-hidden rounded-lg border border-line bg-black shadow-2xl shadow-black/40"
+        className={`relative shrink-0 overflow-hidden bg-black ${
+          thumbnail ? "rounded-[3px]" : fill ? "rounded-lg shadow-[0_1px_2px_rgb(0_0_0/0.3),0_16px_48px_rgb(0_0_0/0.35)]" : "rounded-md"
+        }`}
         style={{ width: WIDTH * scale, height: HEIGHT * scale, visibility: scale ? undefined : "hidden" }}
       >
         <iframe

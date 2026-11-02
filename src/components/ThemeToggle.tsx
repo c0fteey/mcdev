@@ -39,11 +39,11 @@ export function ThemeToggle() {
       onClick={() => setTheme(dark ? "light" : "dark")}
       aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
       title={dark ? "Light theme" : "Dark theme"}
-      className={`grid size-10 place-items-center rounded-full transition-colors ${
+      className={`grid size-8 shrink-0 place-items-center rounded-lg transition-[background-color,scale] duration-150 active:scale-[0.96] pointer-coarse:size-10 ${
         dark ? "text-ink hover:bg-raised" : "bg-gold/15 text-ink hover:bg-gold/25"
       }`}
     >
-      {dark ? <Sun className="size-5" aria-hidden /> : <Moon className="size-5" aria-hidden />}
+      {dark ? <Sun className="size-4" aria-hidden /> : <Moon className="size-4" aria-hidden />}
     </button>
   );
 }

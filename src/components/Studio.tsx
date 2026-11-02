@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowUp, Code, Download, LayoutPanelTop, LayoutTemplate, Link2, Network, Paperclip, Play, Plus, Send, Sparkles } from "lucide-react";
+import { ArrowUp, Code, Download, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Plus, Send, Sparkles } from "lucide-react";
 import type { PageLink } from "@/lib/gui/links";
 import { downloadZip, pageCommand, pageFromTemplate, savePages, usePages, type GuiPage } from "@/lib/gui/pages";
 import { TEMPLATES, type Template } from "@/lib/gui/templates";
@@ -15,6 +16,12 @@ import { Preview } from "./Preview";
 import { TemplatePicker } from "./TemplatePicker";
 import { ThemeToggle } from "./ThemeToggle";
 import { Segmented } from "./ui";
+
+// The editor is heavy and only the Code view needs it.
+const CodeEditor = dynamic(() => import("./CodeEditor"), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 animate-pulse bg-surface" />,
+});
 
 type View = "map" | "page" | "code";
 const VIEWS: { value: View; label: string; icon: typeof Code }[] = [
@@ -119,29 +126,29 @@ export default function Studio() {
 
   return (
     <div className="flex min-h-dvh flex-col md:h-dvh md:min-h-0 md:overflow-hidden">
-      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-1 border-b border-line bg-bg/90 px-2 backdrop-blur sm:gap-2 sm:px-4">
-        <Link href="/" className="mr-1 flex shrink-0 items-center gap-2.5 sm:mr-3">
-          <Logo size={32} />
-          <span className="hidden text-lg font-semibold tracking-tight text-gold lg:inline">{SITE_NAME}</span>
+      <header className="sticky top-0 z-40 flex h-13 shrink-0 items-center gap-0.5 border-b border-line bg-bg/90 px-2 backdrop-blur sm:gap-1 sm:px-3">
+        <Link href="/" className="mr-1 flex shrink-0 items-center gap-2 rounded-lg sm:mr-2">
+          <Logo size={28} />
+          <span className="hidden text-[15px] font-semibold tracking-tight text-gold lg:inline">{SITE_NAME}</span>
         </Link>
         <button type="button" className="btn-ghost" aria-label="New page" onClick={() => addFromTemplate(TEMPLATES[0])}>
-          <Plus className="size-4" aria-hidden />
+          <Plus className="size-3.5" aria-hidden />
           <span className="hidden lg:inline">New</span>
         </button>
         <button type="button" className="btn-ghost" aria-label="Templates" onClick={() => setPicking(true)}>
-          <LayoutTemplate className="size-4" aria-hidden />
+          <LayoutTemplate className="size-3.5" aria-hidden />
           <span className="hidden lg:inline">Templates</span>
         </button>
         <div className="mx-1 sm:mx-2">
           <Segmented label="Editor view" value={view} onChange={setView} options={VIEWS} />
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
           <button type="button" className="btn-ghost" aria-label="Export pages" onClick={() => downloadZip(pages)}>
-            <Download className="size-4" aria-hidden />
+            <Download className="size-3.5" aria-hidden />
             <span className="hidden lg:inline">Export</span>
           </button>
           <button type="button" className="btn-gold hidden sm:inline-flex" disabled title="Coming soon: this needs the server connection">
-            <Send className="size-4" aria-hidden />
+            <Send className="size-3.5" aria-hidden />
             Send to server
           </button>
           <ThemeToggle />
@@ -164,24 +171,25 @@ export default function Studio() {
 
           {view === "page" && (
             <>
-              <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-3 py-2">
-                <div className="flex min-w-0 items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-line px-2 py-1.5">
+                <div className="flex min-w-0 items-center gap-1">
                   <input
                     aria-label="Page title"
                     size={Math.max(page.title.length, 4)}
                     maxLength={40}
-                    className="min-w-0 max-w-44 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-sm font-semibold outline-none transition-colors hover:border-line focus:border-gold"
+                    className="h-7 min-w-0 max-w-44 rounded-md border border-transparent bg-transparent px-1.5 text-[13px] font-semibold outline-none transition-colors [field-sizing:content] hover:border-line focus:border-gold"
                     value={page.title}
                     onChange={(e) => updatePage({ title: e.target.value })}
                   />
-                  <span className="hidden truncate font-mono text-xs text-muted sm:inline">{page.file}</span>
+                  <span className="mr-1 hidden truncate font-mono text-[11px] text-muted sm:inline">{page.file}</span>
                 </div>
                 <Segmented label="Preview mode" value={mode} onChange={changeMode} options={MODES} />
-                <p aria-live="polite" className="ml-auto min-w-0 truncate text-xs text-muted">
-                  {notice ?? HINTS[mode]}
+                <p aria-live="polite" className="ml-auto flex min-w-0 items-center gap-1.5 pr-1 text-xs text-muted">
+                  <MousePointerClick className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{notice ?? HINTS[mode]}</span>
                 </p>
               </div>
-              <div className="canvas-dots relative h-[64vw] min-h-0 shrink-0 p-4 md:h-auto md:flex-1 md:p-6 md:pb-24">{preview}</div>
+              <div className="canvas-dots relative h-[64vw] min-h-0 shrink-0 p-4 md:h-auto md:flex-1 md:px-8 md:pb-22 md:pt-8">{preview}</div>
               <AiComposer pageTitle={page.title} />
             </>
           )}
@@ -189,20 +197,17 @@ export default function Studio() {
           {view === "code" && (
             <div className="grid min-h-0 flex-1 md:grid-cols-2">
               <div className="flex min-h-0 flex-col border-b border-line md:border-b-0 md:border-r">
-                <textarea
-                  aria-label={`HTML of ${page.title}`}
-                  className="h-96 min-h-0 w-full flex-1 resize-none whitespace-pre bg-surface p-4 font-mono text-xs leading-relaxed outline-none md:h-auto"
-                  spellCheck={false}
-                  value={page.html}
-                  onChange={(e) => updatePage({ html: e.target.value })}
-                />
-                <p className="flex shrink-0 items-center justify-between gap-2 border-t border-line px-3 py-2 text-xs text-muted">
+                <div className="relative h-96 min-h-0 flex-1 md:h-auto">
+                  {/* A new key per page, so undo never brings back another page's code */}
+                  <CodeEditor key={page.id} value={page.html} onChange={(html) => updatePage({ html })} />
+                </div>
+                <p className="flex h-8 shrink-0 items-center justify-between gap-2 border-t border-line px-3 text-[11px] text-muted">
                   <span className="truncate font-mono">{page.file}</span>
                   <span className="shrink-0">Saved in this browser</span>
                 </p>
               </div>
               <div className="canvas-dots relative flex min-h-0 flex-col">
-                <div className="h-[64vw] min-h-0 p-4 md:h-auto md:flex-1 md:p-6 md:pb-24">{preview}</div>
+                <div className="h-[64vw] min-h-0 p-4 md:h-auto md:flex-1 md:px-6 md:pb-22 md:pt-6">{preview}</div>
                 <AiComposer pageTitle={page.title} />
               </div>
             </div>
@@ -210,7 +215,7 @@ export default function Studio() {
         </main>
 
         {view !== "code" && (
-          <aside className="shrink-0 overflow-y-auto border-t border-line bg-bg md:w-80 md:border-l md:border-t-0">
+          <aside className="shrink-0 overflow-y-auto border-t border-line bg-bg md:w-64 md:border-l md:border-t-0 lg:w-72">
             <LinksPanel page={page} pages={pages} selected={selectedLink} onChange={(html) => updatePage({ html })} />
           </aside>
         )}
@@ -224,21 +229,21 @@ export default function Studio() {
 // Shown so the layout is final; it turns on when the AI backend exists.
 function AiComposer({ pageTitle }: { pageTitle: string }) {
   return (
-    <div className="p-3 md:pointer-events-none md:absolute md:inset-x-0 md:bottom-0 md:flex md:justify-center md:p-5">
-      <div className="pointer-events-auto flex w-full max-w-2xl items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 shadow-2xl shadow-black/30">
-        <Sparkles className="size-4 shrink-0 text-gold" aria-hidden />
+    <div className="p-2 md:pointer-events-none md:absolute md:inset-x-0 md:bottom-0 md:flex md:justify-center md:p-4">
+      <div className="pointer-events-auto flex h-10 w-full max-w-xl items-center gap-1.5 rounded-xl border border-line bg-surface pl-3 pr-1.5 shadow-[0_1px_2px_rgb(0_0_0/0.25),0_8px_24px_rgb(0_0_0/0.3)]">
+        <Sparkles className="size-3.5 shrink-0 text-gold" aria-hidden />
         <input
           disabled
           aria-label={`Describe a change to ${pageTitle}`}
           placeholder="AI editing is coming soon"
-          className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-muted disabled:cursor-not-allowed"
+          className="min-w-0 flex-1 bg-transparent px-1 text-[13px] outline-none placeholder:text-muted disabled:cursor-not-allowed"
         />
-        <span className="hidden shrink-0 rounded-md border border-line bg-raised px-2 py-1 text-xs font-medium text-muted sm:inline">Minecraft</span>
-        <button type="button" disabled aria-label="Attach a picture" className="grid size-7 shrink-0 place-items-center rounded-lg text-muted opacity-40">
-          <Paperclip className="size-4" aria-hidden />
+        <span className="hidden h-6 shrink-0 items-center rounded-md border border-line bg-raised px-1.5 text-xs font-medium text-muted sm:inline-flex">Minecraft</span>
+        <button type="button" disabled aria-label="Attach a picture" className="grid size-7 shrink-0 cursor-not-allowed place-items-center rounded-md text-muted opacity-40">
+          <Paperclip className="size-3.5" aria-hidden />
         </button>
-        <button type="button" disabled aria-label="Send" className="grid size-7 shrink-0 place-items-center rounded-lg bg-raised text-muted opacity-40">
-          <ArrowUp className="size-4" aria-hidden />
+        <button type="button" disabled aria-label="Send" className="grid size-7 shrink-0 cursor-not-allowed place-items-center rounded-md bg-raised text-muted opacity-40">
+          <ArrowUp className="size-3.5" aria-hidden />
         </button>
       </div>
     </div>
