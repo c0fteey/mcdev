@@ -23,10 +23,13 @@ const SAMPLE_VALUES: Record<string, string> = {
 // PlaceholderAPI values the templates and pasted pages commonly use.
 const SAMPLE_PLACEHOLDERS: Record<string, string> = { "%vault_eco_balance%": "12,450" };
 
-// Browsers do not have the game's font, so the preview stands in Monocraft under its name.
+// Browsers do not have MC GUI's built-in fonts, so the preview serves them itself.
+// "Minecraft" is Mac's Minecraft, the same font MC GUI bundles under that name.
 // The matching color-scheme lets a transparent page show the world behind the iframe.
 const PREVIEW_HEAD = `<style>
-@font-face { font-family: Minecraft; src: url("/fonts/Monocraft.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: Minecraft; src: url("/fonts/MacsMinecraft-Regular.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: Minecraft; font-weight: 700; src: url("/fonts/MacsMinecraft-Bold.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: Monocraft; src: url("/fonts/Monocraft.ttf") format("truetype"); font-display: swap; }
 :root { color-scheme: dark; }
 </style>`;
 
