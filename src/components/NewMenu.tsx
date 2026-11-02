@@ -4,6 +4,13 @@ import * as Popover from "@radix-ui/react-popover";
 import { FileCode, FilePlus, LayoutTemplate, Plus } from "lucide-react";
 import type { GuiProject } from "@/lib/gui/pages";
 
+// Pages from before projects existed have no date yet, and they get today's on their next save.
+function formatDate(time: number) {
+  const date = time > 0 ? new Date(time) : new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
+}
+
 const ITEM = "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-colors hover:bg-raised";
 
 export function NewMenu({
@@ -51,7 +58,7 @@ export function NewMenu({
                   <Popover.Close key={project.id} className={ITEM} aria-current={isCurrent ? "true" : undefined} onClick={() => onOpen(project.id)}>
                     <FileCode className={`size-4 shrink-0 ${isCurrent ? "text-gold" : "text-muted"}`} aria-hidden />
                     <span className={`min-w-0 flex-1 truncate ${isCurrent ? "text-gold" : ""}`}>{project.pages[0].title}</span>
-                    {project.updatedAt > 0 && <span className="shrink-0 text-[11px] font-normal tabular-nums text-muted">{new Date(project.updatedAt).toLocaleDateString()}</span>}
+                    <span className="shrink-0 font-plex text-[11px] font-normal text-muted">{formatDate(project.updatedAt)}</span>
                   </Popover.Close>
                 );
               })}

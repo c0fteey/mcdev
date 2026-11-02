@@ -38,6 +38,8 @@ const FIRST_PAGE: GuiPage[] = [{ id: "first", title: "New page", file: "menu.htm
 // True while there is nothing to lose by replacing the pages.
 export const isUntouched = (pages: GuiPage[]) => pages.length === 1 && pages[0].html === BLANK_HTML;
 
+const dated = (projects: GuiProject[]) => projects.map((p) => (p.updatedAt > 0 ? p : { ...p, updatedAt: Date.now() }));
+
 export function useProjects() {
   const saved = projectStore.useList();
   const legacy = legacyStore.useList();
@@ -62,12 +64,12 @@ export function useProjects() {
       currentStore.save([current.id]);
     },
     openProject(id: string) {
-      projectStore.save(worthKeeping());
+      projectStore.save(dated(worthKeeping()));
       currentStore.save([id]);
     },
     createProject(pages: GuiPage[]) {
       const id = crypto.randomUUID();
-      projectStore.save([{ id, pages, updatedAt: Date.now() }, ...worthKeeping()]);
+      projectStore.save([{ id, pages, updatedAt: Date.now() }, ...dated(worthKeeping())]);
       currentStore.save([id]);
       return id;
     },

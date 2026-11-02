@@ -14,6 +14,7 @@
   --color-gold-soft: #f0c75e;
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-plex: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 /* Theme tokens. Dark is the default; the inline script in layout.tsx sets data-theme="light". */
