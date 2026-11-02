@@ -8,6 +8,9 @@ export type PageLink =
 
 export const LINK_SELECTOR = "a, button, [data-action], [data-command]";
 
+// What the links list and the map show: the ways to move between pages. Commands are not among them.
+export const isNavigation = (link: PageLink) => link.kind === "page" || link.kind === "back" || link.kind === "close";
+
 export function readLink(el: Element): PageLink {
   const action = el.getAttribute("data-action");
   if (action === "close") return { kind: "close" };
@@ -47,7 +50,7 @@ export function describeClick(el: Element): ClickEffect[] {
 }
 
 function writeLink(el: Element, link: PageLink) {
-  for (const name of ["href", "data-action", "data-command"]) el.removeAttribute(name);
+  for (const name of ["href", "data-action", "data-command", "data-console"]) el.removeAttribute(name);
   // data-close only means something next to a command, so editing a command keeps it.
   if (link.kind !== "command") el.removeAttribute("data-close");
   if (link.kind === "close" || link.kind === "back") el.setAttribute("data-action", link.kind);
@@ -78,6 +81,7 @@ export function findLinks(html: string) {
     tag: el.tagName === "A" ? "link" : el.tagName.toLowerCase(),
     key: el.getAttribute("data-key"),
     link: readLink(el),
+    path: elementPath(el),
   }));
 }
 
@@ -117,7 +121,18 @@ export function describeElement(html: string, path: number[]) {
     label: buttonText(el) || el.tagName.toLowerCase(),
     tag: shell.outerHTML.slice(0, shell.outerHTML.indexOf(">") + 1),
     linkIndex: [...doc.querySelectorAll(LINK_SELECTOR)].indexOf(el),
+    command: el.getAttribute("data-command") ?? el.getAttribute("data-console"),
+    asConsole: !el.hasAttribute("data-command") && el.hasAttribute("data-console"),
   };
+}
+
+// Changes what a command runs, keeping whether it runs as the player or the console.
+export function setCommandAt(html: string, path: number[], command: string) {
+  const doc = parse(html);
+  const el = elementAtPath(doc.body, path);
+  if (!el) return html;
+  el.setAttribute(el.hasAttribute("data-command") || !el.hasAttribute("data-console") ? "data-command" : "data-console", command);
+  return serialize(doc);
 }
 
 export function setLinkAt(html: string, path: number[], link: PageLink) {

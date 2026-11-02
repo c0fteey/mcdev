@@ -59,6 +59,12 @@ ${LINK_SELECTOR} { outline: 2px dashed #e2b33c; outline-offset: 2px; }
 [${SELECTED}] { outline: 2px solid #ffffff; outline-offset: 1px; }
 </style>`;
 
+function markHovered(doc: Document | null | undefined, path: number[] | null) {
+  if (!doc?.body) return;
+  doc.querySelector(`[${HOVERED}]`)?.removeAttribute(HOVERED);
+  if (path) elementAtPath(doc.body, path)?.setAttribute(HOVERED, "");
+}
+
 function setHairline(doc: Document | null | undefined, scale: number) {
   if (scale > 0) doc?.documentElement?.style.setProperty(HAIRLINE, `${1 / scale}px`);
 }
@@ -86,6 +92,7 @@ export function Preview({
   onClickLink,
   onSelect,
   selectedPath = null,
+  hoveredPath = null,
   fill,
   thumbnail,
   flush,
@@ -97,6 +104,8 @@ export function Preview({
   // When set, clicks choose an element instead of acting like the game; null means the page itself.
   onSelect?: (element: Element | null) => void;
   selectedPath?: number[] | null;
+  // Lights up an element from outside, such as when pointing at its card in the side panel.
+  hoveredPath?: number[] | null;
   fill?: boolean;
   thumbnail?: boolean;
   flush?: boolean;
@@ -116,6 +125,10 @@ export function Preview({
   useEffect(() => {
     markSelected(frame.current?.contentDocument, selectedPath);
   }, [selectedPath]);
+
+  useEffect(() => {
+    markHovered(frame.current?.contentDocument, hoveredPath);
+  }, [hoveredPath]);
 
   useEffect(() => {
     setHairline(frame.current?.contentDocument, scale);

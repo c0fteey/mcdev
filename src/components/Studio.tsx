@@ -61,6 +61,7 @@ export default function Studio() {
   const [view, setView] = useState<View>("page");
   const [mode, setMode] = useState<Mode>("links");
   const [selectedPath, setSelectedPath] = useState<number[] | null>(null);
+  const [hoveredPath, setHoveredPath] = useState<number[] | null>(null);
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [log, setLog] = useState<ClickLogLine[]>([]);
@@ -228,6 +229,7 @@ export default function Studio() {
       title={`${page.title} preview`}
       showLinks={choosing}
       selectedPath={choosing ? selectedPath : null}
+      hoveredPath={choosing ? hoveredPath : null}
       onClickLink={tryLink}
       onSelect={choosing ? (element) => setSelectedPath(element && elementPath(element)) : undefined}
     />
@@ -342,7 +344,15 @@ export default function Studio() {
             {view === "map" ? (
               <PageDetails page={page} pages={pages} onChange={updateHtml} onOpen={() => setView("page")} onDelete={() => deletePage(page)} />
             ) : (
-              <LinksPanel page={page} pages={pages} selectedPath={choosing ? selectedPath : null} onChange={updateHtml} />
+              <LinksPanel
+                page={page}
+                pages={pages}
+                selectedPath={choosing ? selectedPath : null}
+                onSelect={choosing ? setSelectedPath : undefined}
+                onHover={setHoveredPath}
+                onOpenPage={open}
+                onChange={updateHtml}
+              />
             )}
           </aside>
         )}
