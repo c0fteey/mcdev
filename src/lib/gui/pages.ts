@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { createLocalList } from "@/lib/localList";
 import type { Template } from "./templateLibrary";
 import { BLANK_HTML, inlineStylesheet, PAGE_CSS } from "./templates";
@@ -38,6 +39,33 @@ const FIRST_PAGE: GuiPage[] = [{ id: "first", title: "New page", file: "menu.htm
 // True while there is nothing to lose by replacing the pages.
 export const isUntouched = (pages: GuiPage[]) => pages.length === 1 && pages[0].html === BLANK_HTML;
 
+// A short id for the address bar, like 585i1o4g6i.
+function randomProjectId() {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+  return Array.from(crypto.getRandomValues(new Uint8Array(10)), (byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+// Keeps ?p= in the address bar on the open project, and opens the project a link names.
+export function useProjectUrl(currentId: string, savedIds: string[]) {
+  const read = useRef(false);
+  const known = savedIds.join();
+  useEffect(() => {
+    if (!known) return;
+    const url = new URL(window.location.href);
+    if (!read.current) {
+      read.current = true;
+      const wanted = url.searchParams.get("p");
+      if (wanted && wanted !== currentId && known.split(",").includes(wanted)) {
+        currentStore.save([wanted]);
+        return;
+      }
+    }
+    if (url.searchParams.get("p") === currentId) return;
+    url.searchParams.set("p", currentId);
+    window.history.replaceState(null, "", url);
+  }, [currentId, known]);
+}
+
 const dated = (projects: GuiProject[]) => projects.map((p) => (p.updatedAt > 0 ? p : { ...p, updatedAt: Date.now() }));
 
 export function useProjects() {
@@ -57,18 +85,20 @@ export function useProjects() {
   return {
     pages: current.pages,
     currentId: current.id,
+    savedIds: saved.map((p) => p.id),
     recent: worthKeeping().sort((a, b) => b.updatedAt - a.updatedAt),
     savePages(pages: GuiPage[]) {
-      const others = (saved.length > 0 ? saved : []).filter((p) => p.id !== current.id);
-      projectStore.save([{ id: current.id, pages, updatedAt: Date.now() }, ...others]);
-      currentStore.save([current.id]);
+      // The very first project gets a real id the moment there is something to keep.
+      const id = saved.length > 0 ? current.id : randomProjectId();
+      projectStore.save([{ id, pages, updatedAt: Date.now() }, ...saved.filter((p) => p.id !== current.id)]);
+      currentStore.save([id]);
     },
     openProject(id: string) {
       projectStore.save(dated(worthKeeping()));
       currentStore.save([id]);
     },
     createProject(pages: GuiPage[]) {
-      const id = crypto.randomUUID();
+      const id = randomProjectId();
       projectStore.save([{ id, pages, updatedAt: Date.now() }, ...dated(worthKeeping())]);
       currentStore.save([id]);
       return id;

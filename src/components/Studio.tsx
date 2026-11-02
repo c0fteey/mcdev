@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Send, Sparkles } from "lucide-react";
 import { describeClick, elementPath, renameLinks, type PageLink } from "@/lib/gui/links";
-import { blankPage, firstBlankPage, htmlWithTitle, pageCommand, pagesFromTemplate, titleInHtml, useProjects, type GuiPage } from "@/lib/gui/pages";
+import { blankPage, downloadZip, firstBlankPage, htmlWithTitle, pageCommand, pagesFromTemplate, titleInHtml, useProjects, useProjectUrl, type GuiPage } from "@/lib/gui/pages";
 import type { Template } from "@/lib/gui/templateLibrary";
 import { SITE_NAME } from "@/lib/site";
 import { ClickLog, type ClickLogLine } from "./ClickLog";
@@ -16,6 +16,7 @@ import { NewMenu } from "./NewMenu";
 import { PageDetails } from "./PageDetails";
 import { PagesPanel } from "./PagesPanel";
 import { Preview } from "./Preview";
+import { SendDialog } from "./SendDialog";
 import { ThemeToggle } from "./ThemeToggle";
 import { Segmented } from "./ui";
 
@@ -53,7 +54,8 @@ const HINTS: Record<Mode, string> = {
 };
 
 export default function Studio() {
-  const { pages, currentId, recent, savePages, openProject, createProject } = useProjects();
+  const { pages, currentId, savedIds, recent, savePages, openProject, createProject } = useProjects();
+  useProjectUrl(currentId, savedIds);
   const [activeId, setActiveId] = useState(pages[0].id);
   const [backStack, setBackStack] = useState<string[]>([]);
   const [view, setView] = useState<View>("page");
@@ -65,6 +67,8 @@ export default function Studio() {
   const [undo, setUndo] = useState<{ message: string; pages: GuiPage[]; activeId: string } | null>(null);
   const nextLogId = useRef(0);
   const closePicker = useCallback(() => setPicking(false), []);
+  const [sending, setSending] = useState(false);
+  const closeSend = useCallback(() => setSending(false), []);
 
   // Stored pages arrive after hydration, so the first page is the fallback until one is chosen.
   const page = pages.find((p) => p.id === activeId) ?? pages[0];
@@ -226,7 +230,7 @@ export default function Studio() {
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
           <ExportMenu pages={pages} active={page} />
-          <button type="button" className="btn-gold hidden sm:inline-flex" disabled title="Coming soon: this needs the server connection">
+          <button type="button" className="btn-gold hidden sm:inline-flex" onClick={() => setSending(true)}>
             <Send className="size-3.5" aria-hidden />
             Send to server
           </button>
@@ -235,7 +239,7 @@ export default function Studio() {
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <PagesPanel pages={pages} active={page} onOpen={open} onAdd={addBlankPage} onDelete={deletePage} onCopyCommand={copyCommand} />
+        <PagesPanel pages={pages} active={page} onOpen={open} onAdd={addBlankPage} onDelete={deletePage} onCopyCommand={copyCommand} onSend={() => setSending(true)} />
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           {view === "map" && (
@@ -325,6 +329,18 @@ export default function Studio() {
       </div>
 
       {picking && <TemplatePicker onPick={applyTemplate} onClose={closePicker} />}
+
+      {sending && (
+        <SendDialog
+          projectId={currentId}
+          openCommand={pageCommand(pages[0])}
+          onExport={() => {
+            downloadZip(pages);
+            closeSend();
+          }}
+          onClose={closeSend}
+        />
+      )}
 
       {undo && (
         <div role="status" className="fixed bottom-4 left-1/2 z-[60] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl border border-line bg-raised py-1.5 pl-3 pr-1.5 text-[13px] shadow-[0_1px_2px_rgb(0_0_0/0.25),0_12px_32px_rgb(0_0_0/0.4)]">

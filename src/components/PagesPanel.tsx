@@ -12,6 +12,7 @@ export function PagesPanel({
   onAdd,
   onDelete,
   onCopyCommand,
+  onSend,
 }: {
   pages: GuiPage[];
   active: GuiPage;
@@ -19,6 +20,7 @@ export function PagesPanel({
   onAdd: () => void;
   onDelete: (page: GuiPage) => void;
   onCopyCommand: () => void;
+  onSend: () => void;
 }) {
   return (
     <aside className="flex shrink-0 flex-col gap-1.5 border-b border-line bg-bg p-2 md:min-h-0 md:w-64 md:border-b-0 md:border-r lg:w-[17rem]">
@@ -66,7 +68,7 @@ export function PagesPanel({
           <code className="min-w-0 flex-1 truncate font-mono text-xs">{pageCommand(active)}</code>
           <IconButton label="Copy the command" icon={Copy} onClick={onCopyCommand} />
         </div>
-        <button type="button" className="btn-gold w-full" disabled title="Coming soon: this needs the server connection">
+        <button type="button" className="btn-gold w-full" onClick={onSend}>
           <Send className="size-3.5" aria-hidden />
           Send to server
         </button>
