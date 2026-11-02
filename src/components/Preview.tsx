@@ -45,11 +45,17 @@ const WORLD_BACKDROP = "linear-gradient(#6d94bd, #8dabc6 40%, #6e9153 52%, #3f6a
 // Dashed outlines show what can be linked; preview only, never exported.
 const SELECTED = "data-mcgui-selected";
 const HOVERED = "data-mcgui-hovered";
+// One screen pixel in the page's own pixels, so the hover line stays thin at any preview size.
+const HAIRLINE = "--mcgui-hairline";
 const LINK_OUTLINES = `<style>
 ${LINK_SELECTOR} { outline: 2px dashed #e2b33c; outline-offset: 2px; }
-[${HOVERED}] { outline: 2px solid rgb(255 255 255 / 0.55); outline-offset: 1px; }
+[${HOVERED}] { outline: var(${HAIRLINE}, 1px) solid rgb(255 255 255 / 0.5); outline-offset: calc(var(${HAIRLINE}, 1px) * 2); }
 [${SELECTED}] { outline: 2px solid #ffffff; outline-offset: 1px; }
 </style>`;
+
+function setHairline(doc: Document | null | undefined, scale: number) {
+  if (scale > 0) doc?.documentElement?.style.setProperty(HAIRLINE, `${1 / scale}px`);
+}
 
 function markSelected(doc: Document | null | undefined, path: number[] | null) {
   if (!doc?.body) return;
@@ -95,14 +101,18 @@ export function Preview({
   const srcDoc = useMemo(() => toPreviewDocument(html, showLinks), [html, showLinks]);
 
   const frame = useRef<HTMLIFrameElement>(null);
-  const latest = useRef({ onClickLink, onSelect, selectedPath });
+  const latest = useRef({ onClickLink, onSelect, selectedPath, scale });
   useEffect(() => {
-    latest.current = { onClickLink, onSelect, selectedPath };
+    latest.current = { onClickLink, onSelect, selectedPath, scale };
   });
 
   useEffect(() => {
     markSelected(frame.current?.contentDocument, selectedPath);
   }, [selectedPath]);
+
+  useEffect(() => {
+    setHairline(frame.current?.contentDocument, scale);
+  }, [scale]);
 
   useEffect(() => {
     const el = box.current;
@@ -135,6 +145,7 @@ export function Preview({
             const doc = e.currentTarget.contentDocument;
             if (!doc) return;
             markSelected(doc, latest.current.selectedPath);
+            setHairline(doc, latest.current.scale);
             // The screen behind everything counts as the page, not as something to link.
             const choosable = (target: Element) => {
               const el = target.closest(LINK_SELECTOR) ?? target;
