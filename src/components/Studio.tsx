@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Plus, Send, Sparkles } from "lucide-react";
-import type { PageLink } from "@/lib/gui/links";
+import { describeClick, type PageLink } from "@/lib/gui/links";
 import { pageCommand, pageFromTemplate, savePages, usePages, type GuiPage } from "@/lib/gui/pages";
 import { TEMPLATES, type Template } from "@/lib/gui/templates";
 import { SITE_NAME } from "@/lib/site";
+import { ClickLog, type ClickLogLine } from "./ClickLog";
 import { ExportMenu } from "./ExportMenu";
 import { LinksPanel } from "./LinksPanel";
 import { Logo } from "./Logo";
@@ -23,6 +24,8 @@ const CodeEditor = dynamic(() => import("./CodeEditor"), {
   ssr: false,
   loading: () => <div className="absolute inset-0 animate-pulse bg-surface" />,
 });
+
+const MAX_LOG_LINES = 8;
 
 type View = "map" | "page" | "code";
 const VIEWS: { value: View; label: string; icon: typeof Code }[] = [
@@ -51,6 +54,8 @@ export default function Studio() {
   const [selectedLink, setSelectedLink] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [log, setLog] = useState<ClickLogLine[]>([]);
+  const nextLogId = useRef(0);
   const closePicker = useCallback(() => setPicking(false), []);
 
   // Stored pages arrive after hydration, so the first page is the fallback until one is chosen.
@@ -71,6 +76,7 @@ export default function Studio() {
     setMode(next);
     setSelectedLink(null);
     setNotice(null);
+    setLog([]);
     setBackStack([]);
   };
 
@@ -97,31 +103,35 @@ export default function Studio() {
     }
   };
 
-  // The same click in game, acted out in the browser.
-  const tryLink = (link: PageLink) => {
-    if (link.kind === "close") setNotice("In game, this closes the page.");
-    if (link.kind === "command") setNotice(link.command ? `In game, this runs /${link.command}` : "This button has no command yet.");
-    if (link.kind === "none") setNotice("This button does nothing yet.");
+  // The same click in game, acted out in the browser and listed in the click log.
+  const tryLink = (link: PageLink, element: Element) => {
+    const effects = describeClick(element);
+    setNotice(effects.length === 0 ? "This button does nothing yet." : null);
+    const firstId = nextLogId.current;
+    nextLogId.current += effects.length;
+    setLog((current) => [...current, ...effects.map((effect, i) => ({ ...effect, id: firstId + i }))].slice(-MAX_LOG_LINES));
+
     if (link.kind === "back") {
       const previous = backStack.at(-1);
       if (!previous) return setNotice("There is no page to go back to.");
       showPage(previous);
       setBackStack(backStack.slice(0, -1));
-      setNotice("Went back a page.");
     }
     if (link.kind === "page") {
       const target = pages.find((p) => p.file === link.file);
       if (!target) return setNotice(`There is no page called ${link.file}.`);
       setBackStack([...backStack, page.id]);
       showPage(target.id);
-      setNotice(`Opened ${target.title}.`);
     }
   };
 
-  const onClickLink = (link: PageLink, index: number) => {
-    if (mode === "links") setSelectedLink(index);
-    else tryLink(link);
+  const onClickLink = (link: PageLink, index: number, element: Element) => {
+    // The Code view has no links panel, so clicks there always try the button.
+    if (view === "page" && mode === "links") setSelectedLink(index);
+    else tryLink(link, element);
   };
+
+  const expireLogLine = (id: number) => setLog((current) => current.filter((line) => line.id !== id));
 
   const preview = <Preview fill html={page.html} title={`${page.title} preview`} showLinks={view === "page" && mode === "links"} onClickLink={onClickLink} />;
 
@@ -187,7 +197,10 @@ export default function Studio() {
                   <span className="truncate">{notice ?? HINTS[mode]}</span>
                 </p>
               </div>
-              <div className="canvas-dots relative h-[64vw] min-h-0 shrink-0 p-4 md:h-auto md:flex-1 md:px-8 md:pb-22 md:pt-8">{preview}</div>
+              <div className="canvas-dots relative h-[64vw] min-h-0 shrink-0 p-4 md:h-auto md:flex-1 md:px-8 md:pb-22 md:pt-8">
+                {preview}
+                <ClickLog lines={log} onExpire={expireLogLine} />
+              </div>
               <AiComposer pageTitle={page.title} />
             </>
           )}
@@ -206,6 +219,7 @@ export default function Studio() {
               </div>
               <div className="canvas-dots relative flex min-h-0 flex-col">
                 <div className="h-[64vw] min-h-0 p-4 md:h-auto md:flex-1 md:px-6 md:pb-22 md:pt-6">{preview}</div>
+                <ClickLog lines={log} onExpire={expireLogLine} />
                 <AiComposer pageTitle={page.title} />
               </div>
             </div>

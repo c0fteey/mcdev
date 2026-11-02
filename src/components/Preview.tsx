@@ -20,13 +20,25 @@ const SAMPLE_VALUES: Record<string, string> = {
   z: "0",
 };
 
-// Browsers do not have the game's font, so the preview alone loads a similar one.
-const PREVIEW_FONT = `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&display=swap">`;
+// PlaceholderAPI values the templates and pasted pages commonly use.
+const SAMPLE_PLACEHOLDERS: Record<string, string> = { "%vault_eco_balance%": "12,450" };
+
+// Browsers do not have the game's font, so the preview stands in Monocraft under its name.
+// The matching color-scheme lets a transparent page show the world behind the iframe.
+const PREVIEW_HEAD = `<style>
+@font-face { font-family: Minecraft; src: url("/fonts/Monocraft.ttf") format("truetype"); font-display: swap; }
+:root { color-scheme: dark; }
+</style>`;
+
+// A blurred sky, grass and earth, standing in for the world behind an overlay page.
+const WORLD_BACKDROP = "linear-gradient(#6d94bd, #8dabc6 40%, #6e9153 52%, #3f6a2e 64%, #4b3a26 84%, #2c2016)";
 // Dashed outlines show what can be linked; preview only, never exported.
 const LINK_OUTLINES = `<style>${LINK_SELECTOR} { outline: 2px dashed #e2b33c; outline-offset: 2px; }</style>`;
 
 function toPreviewDocument(html: string, showLinks: boolean) {
-  const page = inlineStylesheet(html, PREVIEW_FONT).replace(/\{(\w+)\}/g, (match, key: string) => SAMPLE_VALUES[key] ?? match);
+  const page = inlineStylesheet(html, PREVIEW_HEAD)
+    .replace(/\{(\w+)\}/g, (match, key: string) => SAMPLE_VALUES[key] ?? match)
+    .replace(/%\w+%/g, (match) => SAMPLE_PLACEHOLDERS[match] ?? match);
   return showLinks ? page + LINK_OUTLINES : page;
 }
 
@@ -42,7 +54,7 @@ export function Preview({
 }: {
   html: string;
   title: string;
-  onClickLink?: (link: PageLink, index: number) => void;
+  onClickLink?: (link: PageLink, index: number, element: Element) => void;
   fill?: boolean;
   thumbnail?: boolean;
   showLinks?: boolean;
@@ -70,10 +82,10 @@ export function Preview({
   return (
     <div ref={box} className={`flex items-center justify-center overflow-hidden ${fill ? "size-full" : "aspect-video w-full"}`}>
       <div
-        className={`relative shrink-0 overflow-hidden bg-black ${
+        className={`relative shrink-0 overflow-hidden ${
           thumbnail ? "rounded-[3px]" : fill ? "rounded-lg shadow-[0_1px_2px_rgb(0_0_0/0.3),0_16px_48px_rgb(0_0_0/0.35)]" : "rounded-md"
         }`}
-        style={{ width: WIDTH * scale, height: HEIGHT * scale, visibility: scale ? undefined : "hidden" }}
+        style={{ width: WIDTH * scale, height: HEIGHT * scale, background: WORLD_BACKDROP, visibility: scale ? undefined : "hidden" }}
       >
         <iframe
           title={title}
@@ -81,14 +93,14 @@ export function Preview({
           sandbox="allow-same-origin"
           tabIndex={onClickLink ? undefined : -1}
           className={`absolute left-0 top-0 origin-top-left border-0 ${onClickLink ? "" : "pointer-events-none"}`}
-          style={{ width: WIDTH, height: HEIGHT, transform: `scale(${scale})` }}
+          style={{ width: WIDTH, height: HEIGHT, transform: `scale(${scale})`, colorScheme: "dark" }}
           onLoad={(e) => {
             const doc = e.currentTarget.contentDocument;
             doc?.addEventListener("click", (click) => {
               const el = (click.target as Element).closest(LINK_SELECTOR);
               if (!el) return;
               click.preventDefault();
-              latestOnClick.current?.(readLink(el), [...doc.querySelectorAll(LINK_SELECTOR)].indexOf(el));
+              latestOnClick.current?.(readLink(el), [...doc.querySelectorAll(LINK_SELECTOR)].indexOf(el), el);
             });
           }}
         />

@@ -72,6 +72,8 @@ export function LinksPanel({
                       {p.title}
                     </SelectItem>
                   ))}
+                  {/* A pasted page can link to a file this project does not have */}
+                  {link.kind === "page" && !pages.some((p) => p.file === link.file) && <SelectItem value={`page:${link.file}`}>{link.file} (missing)</SelectItem>}
                 </SelectGroup>
               </Select>
               {link.kind === "command" && (

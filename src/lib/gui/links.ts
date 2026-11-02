@@ -20,6 +20,32 @@ export function readLink(el: Element): PageLink {
   return { kind: "none" };
 }
 
+export type ClickEffectKind = "run" | "console" | "message" | "event" | "page" | "close" | "sound";
+export interface ClickEffect {
+  kind: ClickEffectKind;
+  text: string;
+}
+
+// Everything one click would do in game, in the order it happens.
+export function describeClick(el: Element): ClickEffect[] {
+  const effects: ClickEffect[] = [];
+  const attribute = (name: string) => el.getAttribute(name)?.trim();
+  const link = readLink(el);
+  const add = (kind: ClickEffectKind, text?: string) => {
+    if (text) effects.push({ kind, text });
+  };
+
+  if (link.kind === "command") add("run", link.command.trim() && `/${link.command.trim()}`);
+  add("console", attribute("data-console") && `/${attribute("data-console")}`);
+  add("message", attribute("data-message"));
+  add("event", attribute("data-event"));
+  if (link.kind === "page") add("page", link.file);
+  if (link.kind === "back") add("page", "the previous page");
+  if (link.kind === "close" || el.hasAttribute("data-close")) add("close", "the page");
+  add("sound", attribute("data-sound"));
+  return effects;
+}
+
 function writeLink(el: Element, link: PageLink) {
   for (const name of ["href", "data-action", "data-command"]) el.removeAttribute(name);
   // data-close only means something next to a command, so editing a command keeps it.

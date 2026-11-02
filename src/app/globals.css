@@ -175,6 +175,39 @@
   @apply size-4;
 }
 
+/* A click's effects appear, stay long enough to read, then fade away */
+@keyframes log-line {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  4%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes log-line-still {
+  0%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.log-line {
+  animation: log-line 5s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .log-line {
+    animation-name: log-line-still;
+  }
+}
+
 /* Example ranks on the login page drift gently, each at its own tilt */
 @keyframes rank-float {
   0%,
