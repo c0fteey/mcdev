@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Plus, Send, Sparkles } from "lucide-react";
+import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Send, Sparkles } from "lucide-react";
 import { describeClick, elementPath, renameLinks, type PageLink } from "@/lib/gui/links";
-import { blankPage, isUntouched, pageCommand, pagesFromTemplate, savePages, usePages, type GuiPage } from "@/lib/gui/pages";
+import { blankPage, firstBlankPage, pageCommand, pagesFromTemplate, useProjects, type GuiPage } from "@/lib/gui/pages";
 import type { Template } from "@/lib/gui/templateLibrary";
 import { SITE_NAME } from "@/lib/site";
 import { ClickLog, type ClickLogLine } from "./ClickLog";
 import { ExportMenu } from "./ExportMenu";
 import { LinksPanel } from "./LinksPanel";
 import { Logo } from "./Logo";
+import { NewMenu } from "./NewMenu";
 import { PageDetails } from "./PageDetails";
 import { PagesPanel } from "./PagesPanel";
 import { Preview } from "./Preview";
@@ -52,7 +53,7 @@ const HINTS: Record<Mode, string> = {
 };
 
 export default function Studio() {
-  const pages = usePages();
+  const { pages, currentId, recent, savePages, openProject, createProject } = useProjects();
   const [activeId, setActiveId] = useState(pages[0].id);
   const [backStack, setBackStack] = useState<string[]>([]);
   const [view, setView] = useState<View>("page");
@@ -89,7 +90,7 @@ export default function Studio() {
 
   const updatePage = (patch: Partial<GuiPage>) => savePages(pages.map((p) => (p.id === page.id ? { ...p, ...patch } : p)));
 
-  // Replacing and deleting happen at once, with a moment to take them back.
+  // Deleting happens at once, with a moment to take it back.
   const offerUndo = (message: string) => setUndo({ message, pages, activeId: page.id });
 
   const takeBack = () => {
@@ -112,15 +113,27 @@ export default function Studio() {
     if (view === "map") setView("page");
   };
 
-  // A template is a whole project with its own first page, so it takes the place of the current pages.
-  const applyTemplate = (template: Template) => {
-    if (!isUntouched(pages)) offerUndo(`Replaced with the ${template.name} template.`);
-    const created = pagesFromTemplate(template);
-    savePages(created);
-    open(created[0].id);
+  // Moving to another project clears everything that belonged to the last one.
+  const enterProject = (firstPageId: string) => {
+    open(firstPageId);
     setLog([]);
+    setUndo(null);
     setPicking(false);
   };
+
+  const startProject = (created: GuiPage[]) => {
+    createProject(created);
+    enterProject(created[0].id);
+  };
+
+  const openRecent = (id: string) => {
+    const project = recent.find((p) => p.id === id);
+    if (!project || id === currentId) return;
+    openProject(id);
+    enterProject(project.pages[0].id);
+  };
+
+  const applyTemplate = (template: Template) => startProject(pagesFromTemplate(template));
 
   const deletePage = (target: GuiPage) => {
     offerUndo(`Deleted ${target.title}.`);
@@ -196,10 +209,7 @@ export default function Studio() {
           <Logo size={28} />
           <span className="hidden text-[15px] font-semibold tracking-tight text-gold lg:inline">{SITE_NAME}</span>
         </Link>
-        <button type="button" className="btn-ghost" aria-label="New page" onClick={addBlankPage}>
-          <Plus className="size-3.5" aria-hidden />
-          <span className="hidden lg:inline">New</span>
-        </button>
+        <NewMenu recent={recent} currentId={currentId} onBlank={() => startProject([firstBlankPage()])} onTemplate={() => setPicking(true)} onOpen={openRecent} />
         <button type="button" className="btn-ghost" aria-label="Templates" onClick={() => setPicking(true)}>
           <LayoutTemplate className="size-3.5" aria-hidden />
           <span className="hidden lg:inline">Templates</span>

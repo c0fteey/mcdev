@@ -16,8 +16,21 @@ const isPage = (v: unknown): v is GuiPage => {
   return !!p && typeof p.id === "string" && typeof p.title === "string" && typeof p.file === "string" && typeof p.html === "string";
 };
 
-const store = createLocalList<GuiPage>("mcgui:pages", isPage);
-export const savePages = store.save;
+export interface GuiProject {
+  id: string;
+  pages: GuiPage[];
+  updatedAt: number;
+}
+
+const isProject = (v: unknown): v is GuiProject => {
+  const p = v as GuiProject | null;
+  return !!p && typeof p.id === "string" && typeof p.updatedAt === "number" && Array.isArray(p.pages) && p.pages.length > 0 && p.pages.every(isPage);
+};
+
+const projectStore = createLocalList<GuiProject>("mcgui:projects", isProject);
+const currentStore = createLocalList<string>("mcgui:current", (v): v is string => typeof v === "string");
+// Pages saved before there were projects; they become the first project on their next save.
+const legacyStore = createLocalList<GuiPage>("mcgui:pages", isPage);
 
 // Shown until the first edit is saved. The fixed id keeps the server and client render equal.
 const FIRST_PAGE: GuiPage[] = [{ id: "first", title: "New page", file: "menu.html", html: BLANK_HTML }];
@@ -25,9 +38,40 @@ const FIRST_PAGE: GuiPage[] = [{ id: "first", title: "New page", file: "menu.htm
 // True while there is nothing to lose by replacing the pages.
 export const isUntouched = (pages: GuiPage[]) => pages.length === 1 && pages[0].html === BLANK_HTML;
 
-export function usePages() {
-  const pages = store.useList();
-  return pages.length > 0 ? pages : FIRST_PAGE;
+export function useProjects() {
+  const saved = projectStore.useList();
+  const legacy = legacyStore.useList();
+  const [currentId] = currentStore.useList();
+
+  const current: GuiProject = saved.find((p) => p.id === currentId) ??
+    saved[0] ?? { id: "first", pages: legacy.length > 0 ? legacy : FIRST_PAGE, updatedAt: 0 };
+
+  // A project nobody has touched is not worth keeping once you move on from it.
+  const worthKeeping = () => {
+    const known = saved.length > 0 ? saved : [current];
+    return known.filter((p) => !isUntouched(p.pages));
+  };
+
+  return {
+    pages: current.pages,
+    currentId: current.id,
+    recent: worthKeeping().sort((a, b) => b.updatedAt - a.updatedAt),
+    savePages(pages: GuiPage[]) {
+      const others = (saved.length > 0 ? saved : []).filter((p) => p.id !== current.id);
+      projectStore.save([{ id: current.id, pages, updatedAt: Date.now() }, ...others]);
+      currentStore.save([current.id]);
+    },
+    openProject(id: string) {
+      projectStore.save(worthKeeping());
+      currentStore.save([id]);
+    },
+    createProject(pages: GuiPage[]) {
+      const id = crypto.randomUUID();
+      projectStore.save([{ id, pages, updatedAt: Date.now() }, ...worthKeeping()]);
+      currentStore.save([id]);
+      return id;
+    },
+  };
 }
 
 function uniqueFile(name: string, pages: GuiPage[]) {
@@ -37,6 +81,9 @@ function uniqueFile(name: string, pages: GuiPage[]) {
   for (let n = 2; taken.has(file); n++) file = `${slug}-${n}.html`;
   return file;
 }
+
+// The page a blank project starts with.
+export const firstBlankPage = (): GuiPage => ({ id: crypto.randomUUID(), title: "New page", file: "menu.html", html: BLANK_HTML });
 
 export const blankPage = (pages: GuiPage[]): GuiPage => ({
   id: crypto.randomUUID(),
