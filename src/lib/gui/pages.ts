@@ -1,7 +1,7 @@
 "use client";
 
 import { createLocalList } from "@/lib/localList";
-import { PAGE_CSS, TEMPLATES, type Template } from "./templates";
+import { inlineStylesheet, PAGE_CSS, TEMPLATES, type Template } from "./templates";
 
 export interface GuiPage {
   id: string;
@@ -46,15 +46,24 @@ export function pageFromTemplate(template: Template, pages: GuiPage[]): GuiPage 
 // The command that opens a page in game: the file name without .html.
 export const pageCommand = (page: GuiPage) => `/mcgui open ${page.file.replace(/\.html$/, "")}`;
 
+function saveBlob(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function downloadZip(pages: GuiPage[]) {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   zip.file("minecraft.css", PAGE_CSS);
   for (const page of pages) zip.file(page.file, page.html);
-  const url = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "mcgui-pages.zip";
-  a.click();
-  URL.revokeObjectURL(url);
+  saveBlob(await zip.generateAsync({ type: "blob" }), "mcgui-pages.zip");
+}
+
+// A lone file has no minecraft.css next to it, so the styles go inside it.
+export function downloadPage(page: GuiPage) {
+  saveBlob(new Blob([inlineStylesheet(page.html)], { type: "text/html" }), page.file);
 }

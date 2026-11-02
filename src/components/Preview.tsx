@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LINK_SELECTOR, readLink, type PageLink } from "@/lib/gui/links";
-import { PAGE_CSS } from "@/lib/gui/templates";
+import { inlineStylesheet } from "@/lib/gui/templates";
 
 // MC GUI lays a 16x9 fullscreen page out at this size.
 const WIDTH = 1024;
@@ -26,9 +26,7 @@ const PREVIEW_FONT = `<link rel="stylesheet" href="https://fonts.googleapis.com/
 const LINK_OUTLINES = `<style>${LINK_SELECTOR} { outline: 2px dashed #e2b33c; outline-offset: 2px; }</style>`;
 
 function toPreviewDocument(html: string, showLinks: boolean) {
-  const page = html
-    .replace(/<link[^>]*href=["']minecraft\.css["'][^>]*>/i, () => `${PREVIEW_FONT}<style>${PAGE_CSS}</style>`)
-    .replace(/\{(\w+)\}/g, (match, key: string) => SAMPLE_VALUES[key] ?? match);
+  const page = inlineStylesheet(html, PREVIEW_FONT).replace(/\{(\w+)\}/g, (match, key: string) => SAMPLE_VALUES[key] ?? match);
   return showLinks ? page + LINK_OUTLINES : page;
 }
 

@@ -47,6 +47,10 @@ body {
 .mc-price { display: block; margin-top: 4px; color: #ffe066; }
 `;
 
+// For a page that travels without minecraft.css beside it.
+export const inlineStylesheet = (html: string, extraHead = "") =>
+  html.replace(/<link[^>]*href=["']minecraft\.css["'][^>]*>/i, () => `${extraHead}<style>${PAGE_CSS}</style>`);
+
 const page = (title: string, body: string) => `<!doctype html>
 <html lang="en">
   <head>

@@ -3,11 +3,12 @@
 import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowUp, Code, Download, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Plus, Send, Sparkles } from "lucide-react";
+import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Plus, Send, Sparkles } from "lucide-react";
 import type { PageLink } from "@/lib/gui/links";
-import { downloadZip, pageCommand, pageFromTemplate, savePages, usePages, type GuiPage } from "@/lib/gui/pages";
+import { pageCommand, pageFromTemplate, savePages, usePages, type GuiPage } from "@/lib/gui/pages";
 import { TEMPLATES, type Template } from "@/lib/gui/templates";
 import { SITE_NAME } from "@/lib/site";
+import { ExportMenu } from "./ExportMenu";
 import { LinksPanel } from "./LinksPanel";
 import { Logo } from "./Logo";
 import { MapView } from "./MapView";
@@ -143,10 +144,7 @@ export default function Studio() {
           <Segmented label="Editor view" value={view} onChange={setView} options={VIEWS} />
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-          <button type="button" className="btn-ghost" aria-label="Export pages" onClick={() => downloadZip(pages)}>
-            <Download className="size-3.5" aria-hidden />
-            <span className="hidden lg:inline">Export</span>
-          </button>
+          <ExportMenu pages={pages} active={page} />
           <button type="button" className="btn-gold hidden sm:inline-flex" disabled title="Coming soon: this needs the server connection">
             <Send className="size-3.5" aria-hidden />
             Send to server
