@@ -34,7 +34,7 @@ export function PageDetails({
           {pages.length > 1 && <IconButton label={`Delete ${page.title}`} icon={Trash2} onClick={onDelete} />}
         </div>
       </div>
-      <LinksPanel page={page} pages={pages} selected={null} onChange={onChange} heading="Goes to" />
+      <LinksPanel page={page} pages={pages} onChange={onChange} heading="Goes to" />
       <div className="flex gap-2 px-3 pb-3">
         <button type="button" className="btn-gold flex-1" onClick={onOpen}>
           Open page

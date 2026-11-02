@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Plus, Send, Sparkles } from "lucide-react";
-import { describeClick, renameLinks, type PageLink } from "@/lib/gui/links";
+import { describeClick, elementPath, renameLinks, type PageLink } from "@/lib/gui/links";
 import { blankPage, isUntouched, pageCommand, pagesFromTemplate, savePages, usePages, type GuiPage } from "@/lib/gui/pages";
 import type { Template } from "@/lib/gui/templateLibrary";
 import { SITE_NAME } from "@/lib/site";
@@ -47,7 +47,7 @@ const MODES: { value: Mode; label: string; icon: typeof Code }[] = [
 ];
 
 const HINTS: Record<Mode, string> = {
-  links: "Click a button to choose what it does",
+  links: "Click anything to link it",
   try: "Click a button to try it",
 };
 
@@ -57,7 +57,7 @@ export default function Studio() {
   const [backStack, setBackStack] = useState<string[]>([]);
   const [view, setView] = useState<View>("page");
   const [mode, setMode] = useState<Mode>("links");
-  const [selectedLink, setSelectedLink] = useState<number | null>(null);
+  const [selectedPath, setSelectedPath] = useState<number[] | null>(null);
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [log, setLog] = useState<ClickLogLine[]>([]);
@@ -70,7 +70,7 @@ export default function Studio() {
 
   const showPage = (id: string) => {
     setActiveId(id);
-    setSelectedLink(null);
+    setSelectedPath(null);
   };
 
   const open = (id: string) => {
@@ -81,7 +81,7 @@ export default function Studio() {
 
   const changeMode = (next: Mode) => {
     setMode(next);
-    setSelectedLink(null);
+    setSelectedPath(null);
     setNotice(null);
     setLog([]);
     setBackStack([]);
@@ -172,15 +172,22 @@ export default function Studio() {
     }
   };
 
-  const onClickLink = (link: PageLink, index: number, element: Element) => {
-    // The Code view has no links panel, so clicks there always try the button.
-    if (view === "page" && mode === "links") setSelectedLink(index);
-    else tryLink(link, element);
-  };
+  // The Code view has no links panel, so clicks there always try the button.
+  const choosing = view === "page" && mode === "links";
 
   const expireLogLine = (id: number) => setLog((current) => current.filter((line) => line.id !== id));
 
-  const preview = <Preview fill html={page.html} title={`${page.title} preview`} showLinks={view === "page" && mode === "links"} onClickLink={onClickLink} />;
+  const preview = (
+    <Preview
+      fill
+      html={page.html}
+      title={`${page.title} preview`}
+      showLinks={choosing}
+      selectedPath={choosing ? selectedPath : null}
+      onClickLink={tryLink}
+      onSelect={choosing ? (element) => setSelectedPath(element && elementPath(element)) : undefined}
+    />
+  );
 
   return (
     <div className="flex min-h-dvh flex-col md:h-dvh md:min-h-0 md:overflow-hidden">
@@ -294,7 +301,7 @@ export default function Studio() {
             {view === "map" ? (
               <PageDetails page={page} pages={pages} onChange={(html) => updatePage({ html })} onOpen={() => setView("page")} onDelete={() => deletePage(page)} />
             ) : (
-              <LinksPanel page={page} pages={pages} selected={selectedLink} onChange={(html) => updatePage({ html })} />
+              <LinksPanel page={page} pages={pages} selectedPath={choosing ? selectedPath : null} onChange={(html) => updatePage({ html })} />
             )}
           </aside>
         )}

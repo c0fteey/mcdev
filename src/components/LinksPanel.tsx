@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import { findLinks, setLink, type PageLink } from "@/lib/gui/links";
+import * as Popover from "@radix-ui/react-popover";
+import { ChevronDown, Link2 } from "lucide-react";
+import { describeElement, findLinks, setLink, setLinkAt, type PageLink } from "@/lib/gui/links";
 import type { GuiPage } from "@/lib/gui/pages";
 import { Select, SelectGroup, SelectItem } from "./ui";
 
@@ -15,22 +17,63 @@ function linkFromValue(value: string, current: PageLink): PageLink {
   return { kind: value as "none" | "close" | "back" };
 }
 
+const MENU_ITEM = "w-full cursor-pointer truncate rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors hover:bg-gold/10";
+
+function MakeLink({ pages, onPick }: { pages: GuiPage[]; onPick: (link: PageLink) => void }) {
+  const actions: { label: string; link: PageLink }[] = [
+    { label: "Close the page", link: { kind: "close" } },
+    { label: "Go back", link: { kind: "back" } },
+    { label: "Run a command", link: { kind: "command", command: "" } },
+  ];
+  return (
+    <Popover.Root>
+      <Popover.Trigger className="btn-gold w-full">
+        <Link2 className="size-3.5" aria-hidden />
+        Make it a link
+        <ChevronDown className="size-3.5" aria-hidden />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="start"
+          sideOffset={6}
+          collisionPadding={8}
+          className="z-[60] flex max-h-80 w-[var(--radix-popover-trigger-width)] flex-col gap-0.5 overflow-y-auto rounded-xl border border-line bg-raised p-1 shadow-[0_1px_2px_rgb(0_0_0/0.25),0_12px_32px_rgb(0_0_0/0.4)]"
+        >
+          {actions.map(({ label, link }) => (
+            <Popover.Close key={label} className={MENU_ITEM} onClick={() => onPick(link)}>
+              {label}
+            </Popover.Close>
+          ))}
+          <span className="label px-2.5 pb-0.5 pt-2">Open a page</span>
+          {pages.map((p) => (
+            <Popover.Close key={p.id} className={MENU_ITEM} onClick={() => onPick({ kind: "page", file: p.file })}>
+              {p.title}
+            </Popover.Close>
+          ))}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 export function LinksPanel({
   page,
   pages,
-  selected,
+  selectedPath = null,
   onChange,
   heading = "Links on this page",
 }: {
   page: GuiPage;
   pages: GuiPage[];
-  selected: number | null;
+  selectedPath?: number[] | null;
   onChange: (html: string) => void;
   heading?: string;
 }) {
   // Links are read with DOMParser, which only exists in the browser.
   const inBrowser = useSyncExternalStore(noSubscribe, () => true, () => false);
   const links = inBrowser ? findLinks(page.html) : [];
+  const selection = inBrowser && selectedPath ? describeElement(page.html, selectedPath) : null;
+  const selectedLink = selection && selection.linkIndex >= 0 ? selection.linkIndex : null;
   const opensFirst = pages[0].id === page.id;
   const reachedFrom = inBrowser
     ? pages.flatMap((p) => {
@@ -43,10 +86,21 @@ export function LinksPanel({
   const selectedCard = useRef<HTMLDivElement>(null);
   useEffect(() => {
     selectedCard.current?.scrollIntoView({ block: "nearest" });
-  }, [selected]);
+  }, [selectedLink]);
 
   return (
     <div className="flex flex-col gap-3 p-3">
+      {selection && selectedLink === null && selectedPath && (
+        <div className="flex flex-col gap-2 rounded-xl border border-gold bg-surface p-2.5">
+          <div className="min-w-0">
+            <h2 className="label">Selected</h2>
+            <p className="mt-1 truncate text-[13px] font-semibold">{selection.label}</p>
+            <p className="truncate font-mono text-[11px] text-muted">{selection.tag}</p>
+          </div>
+          <MakeLink pages={pages} onPick={(link) => onChange(setLinkAt(page.html, selectedPath, link))} />
+        </div>
+      )}
+
       <div className="flex h-5 items-center justify-between gap-2">
         <h2 className="label">{heading}</h2>
         <span className="text-[11px] tabular-nums text-muted">{links.length}</span>
@@ -57,8 +111,8 @@ export function LinksPanel({
           {links.map(({ label, tag, key, link }, index) => (
             <div
               key={index}
-              ref={index === selected ? selectedCard : undefined}
-              className={`flex flex-col gap-2 rounded-xl border bg-surface p-2.5 transition-colors ${index === selected ? "border-gold" : "border-line"}`}
+              ref={index === selectedLink ? selectedCard : undefined}
+              className={`flex flex-col gap-2 rounded-xl border bg-surface p-2.5 transition-colors ${index === selectedLink ? "border-gold" : "border-line"}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="min-w-0 truncate text-[13px] font-semibold">{label}</span>
@@ -97,11 +151,7 @@ export function LinksPanel({
         </div>
       )}
 
-      <p className="text-[13px] leading-snug text-muted">
-        {links.length > 0
-          ? "Click a button on the page to find it here, then choose what it does."
-          : "This page has no buttons or links yet. Add one in the Code view."}
-      </p>
+      <p className="text-[13px] leading-snug text-muted">Click anything on the page to make it a link: to another page, back, closing the page, or running a command.</p>
 
       <div className="flex flex-col gap-1.5 pt-3">
         <h2 className="label">Reached from</h2>

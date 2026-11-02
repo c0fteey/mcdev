@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LINK_SELECTOR, readLink, type PageLink } from "@/lib/gui/links";
+import { elementAtPath, LINK_SELECTOR, readLink, type PageLink } from "@/lib/gui/links";
 import { inlineStylesheet } from "@/lib/gui/templates";
 
 // MC GUI lays a 16x9 fullscreen page out at this size.
@@ -43,7 +43,19 @@ const PREVIEW_HEAD = `<style>
 // A blurred sky, grass and earth, standing in for the world behind an overlay page.
 const WORLD_BACKDROP = "linear-gradient(#6d94bd, #8dabc6 40%, #6e9153 52%, #3f6a2e 64%, #4b3a26 84%, #2c2016)";
 // Dashed outlines show what can be linked; preview only, never exported.
-const LINK_OUTLINES = `<style>${LINK_SELECTOR} { outline: 2px dashed #e2b33c; outline-offset: 2px; }</style>`;
+const SELECTED = "data-mcgui-selected";
+const HOVERED = "data-mcgui-hovered";
+const LINK_OUTLINES = `<style>
+${LINK_SELECTOR} { outline: 2px dashed #e2b33c; outline-offset: 2px; }
+[${HOVERED}] { outline: 2px solid rgb(255 255 255 / 0.55); outline-offset: 1px; }
+[${SELECTED}] { outline: 2px solid #ffffff; outline-offset: 1px; }
+</style>`;
+
+function markSelected(doc: Document | null | undefined, path: number[] | null) {
+  if (!doc?.body) return;
+  doc.querySelector(`[${SELECTED}]`)?.removeAttribute(SELECTED);
+  if (path) elementAtPath(doc.body, path)?.setAttribute(SELECTED, "");
+}
 
 function toPreviewDocument(html: string, showLinks: boolean) {
   const page = inlineStylesheet(html, PREVIEW_HEAD)
@@ -60,6 +72,8 @@ export function Preview({
   html,
   title,
   onClickLink,
+  onSelect,
+  selectedPath = null,
   fill,
   thumbnail,
   flush,
@@ -67,7 +81,10 @@ export function Preview({
 }: {
   html: string;
   title: string;
-  onClickLink?: (link: PageLink, index: number, element: Element) => void;
+  onClickLink?: (link: PageLink, element: Element) => void;
+  // When set, clicks choose an element instead of acting like the game; null means the page itself.
+  onSelect?: (element: Element | null) => void;
+  selectedPath?: number[] | null;
   fill?: boolean;
   thumbnail?: boolean;
   flush?: boolean;
@@ -77,10 +94,15 @@ export function Preview({
   const [scale, setScale] = useState(0);
   const srcDoc = useMemo(() => toPreviewDocument(html, showLinks), [html, showLinks]);
 
-  const latestOnClick = useRef(onClickLink);
+  const frame = useRef<HTMLIFrameElement>(null);
+  const latest = useRef({ onClickLink, onSelect, selectedPath });
   useEffect(() => {
-    latestOnClick.current = onClickLink;
+    latest.current = { onClickLink, onSelect, selectedPath };
   });
+
+  useEffect(() => {
+    markSelected(frame.current?.contentDocument, selectedPath);
+  }, [selectedPath]);
 
   useEffect(() => {
     const el = box.current;
@@ -102,6 +124,7 @@ export function Preview({
         style={{ width: WIDTH * scale, height: HEIGHT * scale, background: WORLD_BACKDROP, visibility: scale ? undefined : "hidden" }}
       >
         <iframe
+          ref={frame}
           title={title}
           srcDoc={srcDoc}
           sandbox="allow-same-origin"
@@ -110,12 +133,27 @@ export function Preview({
           style={{ width: WIDTH, height: HEIGHT, transform: `scale(${scale})`, colorScheme: "dark" }}
           onLoad={(e) => {
             const doc = e.currentTarget.contentDocument;
-            doc?.addEventListener("click", (click) => {
-              const el = (click.target as Element).closest(LINK_SELECTOR);
-              if (!el) return;
-              click.preventDefault();
-              latestOnClick.current?.(readLink(el), [...doc.querySelectorAll(LINK_SELECTOR)].indexOf(el), el);
+            if (!doc) return;
+            markSelected(doc, latest.current.selectedPath);
+            // The screen behind everything counts as the page, not as something to link.
+            const choosable = (target: Element) => {
+              const el = target.closest(LINK_SELECTOR) ?? target;
+              return el.matches("html, body, .mc-screen") ? null : el;
+            };
+            doc.addEventListener("click", (click) => {
+              const target = click.target as Element;
+              const link = target.closest(LINK_SELECTOR);
+              // Labels keep working, so hidden tabs can be reached and their contents chosen.
+              if (link) click.preventDefault();
+              const { onClickLink: act, onSelect: select } = latest.current;
+              if (select) select(choosable(target));
+              else if (link) act?.(readLink(link), link);
             });
+            doc.addEventListener("mouseover", (event) => {
+              doc.querySelector(`[${HOVERED}]`)?.removeAttribute(HOVERED);
+              if (latest.current.onSelect) choosable(event.target as Element)?.setAttribute(HOVERED, "");
+            });
+            doc.addEventListener("mouseleave", () => doc.querySelector(`[${HOVERED}]`)?.removeAttribute(HOVERED));
           }}
         />
       </div>

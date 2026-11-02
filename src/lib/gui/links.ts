@@ -81,10 +81,49 @@ export function findLinks(html: string) {
   }));
 }
 
+const serialize = (doc: Document) => `<!doctype html>\n${doc.documentElement.outerHTML}\n`;
+
 export function setLink(html: string, index: number, link: PageLink) {
   const doc = parse(html);
   const el = doc.querySelectorAll(LINK_SELECTOR)[index];
   if (!el) return html;
   writeLink(el, link);
-  return `<!doctype html>\n${doc.documentElement.outerHTML}\n`;
+  return serialize(doc);
+}
+
+// An element's place under <body>, as child positions. It means the same element
+// in the page's source and in the preview, which differ only in their placeholders.
+export function elementPath(el: Element) {
+  const path: number[] = [];
+  for (let node = el; node.parentElement && node.tagName !== "BODY"; node = node.parentElement) {
+    path.unshift([...node.parentElement.children].indexOf(node));
+  }
+  return path;
+}
+
+export function elementAtPath(body: Element, path: number[]) {
+  let node: Element | undefined = body;
+  for (const index of path) node = node?.children[index];
+  return node ?? null;
+}
+
+// What the side panel says about the chosen element.
+export function describeElement(html: string, path: number[]) {
+  const doc = parse(html);
+  const el = elementAtPath(doc.body, path);
+  if (!el) return null;
+  const shell = el.cloneNode(false) as Element;
+  return {
+    label: buttonText(el) || el.tagName.toLowerCase(),
+    tag: shell.outerHTML.slice(0, shell.outerHTML.indexOf(">") + 1),
+    linkIndex: [...doc.querySelectorAll(LINK_SELECTOR)].indexOf(el),
+  };
+}
+
+export function setLinkAt(html: string, path: number[], link: PageLink) {
+  const doc = parse(html);
+  const el = elementAtPath(doc.body, path);
+  if (!el) return html;
+  writeLink(el, link);
+  return serialize(doc);
 }
