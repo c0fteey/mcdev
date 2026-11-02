@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { elementAtPath, LINK_SELECTOR, readLink, type PageLink } from "@/lib/gui/links";
-import { inlineStylesheet } from "@/lib/gui/templates";
+import { inlineStylesheet, WORLD_BACKGROUND } from "@/lib/gui/templates";
 
 // MC GUI lays a 16x9 fullscreen page out at this size.
 const WIDTH = 1024;
@@ -40,8 +40,14 @@ const PREVIEW_HEAD = `<style>
 :root { color-scheme: dark; }
 </style>`;
 
-// A blurred sky, grass and earth, standing in for the world behind an overlay page.
-const WORLD_BACKDROP = "linear-gradient(#6d94bd, #8dabc6 40%, #6e9153 52%, #3f6a2e 64%, #4b3a26 84%, #2c2016)";
+// The tint and blur a page asks for with ui:overlay, as in rgba(0, 0, 0, 0.25) blur.
+function readOverlay(html: string) {
+  const tag = html.match(/<meta[^>]*name=["']ui:overlay["'][^>]*>/i)?.[0];
+  const content = tag?.match(/content=["']([^"']*)["']/i)?.[1].trim() ?? "";
+  const blur = /\bblur\s*$/i.test(content);
+  const tint = content.replace(/\bblur\s*$/i, "").trim();
+  return { blur, tint: tint && tint !== "none" ? tint : undefined };
+}
 // Dashed outlines show what can be linked; preview only, never exported.
 const SELECTED = "data-mcgui-selected";
 const HOVERED = "data-mcgui-hovered";
@@ -99,6 +105,7 @@ export function Preview({
   const box = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
   const srcDoc = useMemo(() => toPreviewDocument(html, showLinks), [html, showLinks]);
+  const overlay = useMemo(() => readOverlay(html), [html]);
 
   const frame = useRef<HTMLIFrameElement>(null);
   const latest = useRef({ onClickLink, onSelect, selectedPath, scale });
@@ -131,8 +138,11 @@ export function Preview({
         className={`relative shrink-0 overflow-hidden ${
           flush ? "" : thumbnail ? "rounded-[3px]" : fill ? "rounded-lg shadow-[0_1px_2px_rgb(0_0_0/0.3),0_16px_48px_rgb(0_0_0/0.35)]" : "rounded-md"
         }`}
-        style={{ width: WIDTH * scale, height: HEIGHT * scale, background: WORLD_BACKDROP, visibility: scale ? undefined : "hidden" }}
+        style={{ width: WIDTH * scale, height: HEIGHT * scale, visibility: scale ? undefined : "hidden" }}
       >
+        {/* The world around an overlay page; it reaches past the edges so the blur has no pale rim */}
+        <div className="absolute -inset-10" style={{ background: WORLD_BACKGROUND, filter: overlay.blur ? `blur(${14 * scale}px)` : undefined }} />
+        {overlay.tint && <div className="absolute inset-0" style={{ background: overlay.tint }} />}
         <iframe
           ref={frame}
           title={title}

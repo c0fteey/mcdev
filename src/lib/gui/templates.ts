@@ -1,5 +1,15 @@
 import { ICON_CSS } from "./icons";
 
+// Soft patches of sky, grass and earth. Blurred, they read as a world seen behind a menu.
+export const WORLD_BACKGROUND = [
+  "radial-gradient(30% 34% at 22% 26%, #6497c9, transparent 70%)",
+  "radial-gradient(38% 30% at 74% 14%, #a4c6e6, transparent 70%)",
+  "radial-gradient(30% 40% at 88% 70%, #48752c, transparent 70%)",
+  "radial-gradient(36% 42% at 20% 88%, #6d4a2a, transparent 70%)",
+  "radial-gradient(28% 26% at 52% 62%, #5f9238, transparent 70%)",
+  "linear-gradient(#7aa9d8, #a3c4e2 38%, #5e8c3a 52%, #47341f 78%, #2a1f16)",
+].join(", ");
+
 // The stylesheet pages link to. It is exported beside the pages as minecraft.css.
 // One game pixel is 2 CSS px, so every edge and gap is a multiple of 2.
 export const PAGE_CSS = `* { box-sizing: border-box; }
@@ -59,10 +69,10 @@ p { margin: 0; }
 .mc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .mc-grow { flex: 1; }
 
-.mc-world { inset: 0; width: 100%; height: 100%; background: linear-gradient(#6d94bd, #8dabc6 40%, #6e9153 52%, #3f6a2e 64%, #4b3a26 84%, #2c2016); }
-.mc-world.nether { background: linear-gradient(#3a0f0f, #6b1c12 50%, #2a0a0a); }
-.mc-world.end { background: linear-gradient(#17102b, #2a1f47 55%, #0d0a18); }
-.mc-dim { inset: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); }
+.mc-world { position: absolute; z-index: -2; inset: -40px; filter: blur(14px); background: ${WORLD_BACKGROUND}; }
+.mc-world.nether { background: radial-gradient(30% 36% at 24% 68%, #f0641c, transparent 70%), radial-gradient(36% 40% at 78% 30%, #6e1c14, transparent 70%), linear-gradient(#3a0f0a, #6b1c12 50%, #2a0a08); }
+.mc-world.end { background: radial-gradient(34% 40% at 50% 40%, #3a2a58, transparent 70%), linear-gradient(#0d0a18, #1f1733 60%, #17102b); }
+.mc-dim { position: absolute; z-index: -1; inset: 0; background: rgba(0, 0, 0, 0.4); }
 
 .mc-btn {
   display: inline-flex;
