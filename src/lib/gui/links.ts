@@ -34,6 +34,8 @@ const parse = (html: string) => new DOMParser().parseFromString(html, "text/html
 export function findLinks(html: string) {
   return [...parse(html).querySelectorAll(LINK_SELECTOR)].map((el) => ({
     label: el.textContent?.trim().replace(/\s+/g, " ").slice(0, 40) || el.tagName.toLowerCase(),
+    tag: el.tagName === "A" ? "link" : el.tagName.toLowerCase(),
+    key: el.getAttribute("data-key"),
     link: readLink(el),
   }));
 }

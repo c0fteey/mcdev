@@ -23,6 +23,7 @@
   --stage-b: #151412;
   --grid-line: rgb(255 255 255 / 0.025);
   --glow: rgb(226 179 60 / 0.07);
+  --canvas-dot: rgb(255 255 255 / 0.09);
 }
 :root[data-theme="light"] {
   --color-bg: #f5f4f0;
@@ -38,13 +39,13 @@
   --stage-b: #dedbd3;
   --grid-line: rgb(0 0 0 / 0.035);
   --glow: rgb(185 136 26 / 0.08);
+  --canvas-dot: rgb(0 0 0 / 0.14);
 }
 
 @layer base {
   html {
-    /* Dark native UI (page scrollbar, form controls); gutter avoids a jump when a dialog locks scrolling */
+    /* Dark native UI (page scrollbar, form controls) */
     color-scheme: dark;
-    scrollbar-gutter: stable;
     scrollbar-color: var(--scroll-thumb) var(--color-bg);
   }
   html[data-theme="light"] {
@@ -121,6 +122,16 @@
   }
   .label {
     @apply text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  /* Quiet top bar action */
+  .btn-ghost {
+    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-ink transition-colors hover:bg-raised sm:px-2.5 disabled:pointer-events-none disabled:opacity-40;
+  }
+  /* The editor's work surface */
+  .canvas-dots {
+    background-color: var(--color-bg);
+    background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
   /* Scroll area for long lists inside panels. Phones scroll the page instead of a box inside it. */
   .scroll-area {

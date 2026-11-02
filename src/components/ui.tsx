@@ -169,7 +169,7 @@ export function Segmented<T extends string>({
 }: {
   value: T;
   onChange: (v: T) => void;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; icon?: LucideIcon }[];
   label: string;
 }) {
   return (
@@ -180,12 +180,15 @@ export function Segmented<T extends string>({
           type="button"
           role="radio"
           aria-checked={value === o.value}
+          aria-label={o.label}
           onClick={() => onChange(o.value)}
-          className={`shrink-0 whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+          className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg py-1.5 text-sm font-medium transition-colors ${o.icon ? "px-2.5 sm:px-3" : "px-4"} ${
             value === o.value ? "bg-gold text-black" : "text-muted hover:text-ink"
           }`}
         >
-          {o.label}
+          {o.icon && <o.icon className="size-4" aria-hidden />}
+          {/* With an icon, phones show the icon alone so the top bar fits */}
+          <span className={o.icon ? "hidden sm:inline" : undefined}>{o.label}</span>
         </button>
       ))}
     </div>

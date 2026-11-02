@@ -22,50 +22,75 @@ const SAMPLE_VALUES: Record<string, string> = {
 
 // Browsers do not have the game's font, so the preview alone loads a similar one.
 const PREVIEW_FONT = `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&display=swap">`;
+// Dashed outlines show what can be linked; preview only, never exported.
+const LINK_OUTLINES = `<style>${LINK_SELECTOR} { outline: 2px dashed #e2b33c; outline-offset: 2px; }</style>`;
 
-function toPreviewDocument(html: string) {
-  return html
+function toPreviewDocument(html: string, showLinks: boolean) {
+  const page = html
     .replace(/<link[^>]*href=["']minecraft\.css["'][^>]*>/i, () => `${PREVIEW_FONT}<style>${PAGE_CSS}</style>`)
     .replace(/\{(\w+)\}/g, (match, key: string) => SAMPLE_VALUES[key] ?? match);
+  return showLinks ? page + LINK_OUTLINES : page;
 }
 
+// Fits the page inside its parent: fill takes the parent's whole box, otherwise it keeps 16:9 at full width.
 // Without allow-scripts the page's own scripts never run; allow-same-origin lets us hear its clicks.
-export function Preview({ html, title, onLink }: { html: string; title: string; onLink?: (link: PageLink) => void }) {
+export function Preview({
+  html,
+  title,
+  onClickLink,
+  fill,
+  showLinks = false,
+}: {
+  html: string;
+  title: string;
+  onClickLink?: (link: PageLink, index: number) => void;
+  fill?: boolean;
+  showLinks?: boolean;
+}) {
   const box = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  const srcDoc = useMemo(() => toPreviewDocument(html), [html]);
+  const [scale, setScale] = useState(0);
+  const srcDoc = useMemo(() => toPreviewDocument(html, showLinks), [html, showLinks]);
 
-  const latestOnLink = useRef(onLink);
+  const latestOnClick = useRef(onClickLink);
   useEffect(() => {
-    latestOnLink.current = onLink;
+    latestOnClick.current = onClickLink;
   });
 
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const observer = new ResizeObserver(([entry]) => setScale(entry.contentRect.width / WIDTH));
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setScale(Math.min(width / WIDTH, height / HEIGHT));
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={box} className="relative aspect-video w-full overflow-hidden rounded-xl border border-line bg-black">
-      <iframe
-        title={title}
-        srcDoc={srcDoc}
-        sandbox="allow-same-origin"
-        tabIndex={onLink ? undefined : -1}
-        className={`absolute left-0 top-0 origin-top-left border-0 ${onLink ? "" : "pointer-events-none"}`}
-        style={{ width: WIDTH, height: HEIGHT, transform: `scale(${scale})` }}
-        onLoad={(e) => {
-          e.currentTarget.contentDocument?.addEventListener("click", (click) => {
-            const el = (click.target as Element).closest(LINK_SELECTOR);
-            if (!el) return;
-            click.preventDefault();
-            latestOnLink.current?.(readLink(el));
-          });
-        }}
-      />
+    <div ref={box} className={`flex items-center justify-center overflow-hidden ${fill ? "size-full" : "aspect-video w-full"}`}>
+      <div
+        className="relative shrink-0 overflow-hidden rounded-lg border border-line bg-black shadow-2xl shadow-black/40"
+        style={{ width: WIDTH * scale, height: HEIGHT * scale, visibility: scale ? undefined : "hidden" }}
+      >
+        <iframe
+          title={title}
+          srcDoc={srcDoc}
+          sandbox="allow-same-origin"
+          tabIndex={onClickLink ? undefined : -1}
+          className={`absolute left-0 top-0 origin-top-left border-0 ${onClickLink ? "" : "pointer-events-none"}`}
+          style={{ width: WIDTH, height: HEIGHT, transform: `scale(${scale})` }}
+          onLoad={(e) => {
+            const doc = e.currentTarget.contentDocument;
+            doc?.addEventListener("click", (click) => {
+              const el = (click.target as Element).closest(LINK_SELECTOR);
+              if (!el) return;
+              click.preventDefault();
+              latestOnClick.current?.(readLink(el), [...doc.querySelectorAll(LINK_SELECTOR)].indexOf(el));
+            });
+          }}
+        />
+      </div>
     </div>
   );
 }
