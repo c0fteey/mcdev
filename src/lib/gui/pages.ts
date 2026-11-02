@@ -1,0 +1,60 @@
+"use client";
+
+import { createLocalList } from "@/lib/localList";
+import { PAGE_CSS, TEMPLATES, type Template } from "./templates";
+
+export interface GuiPage {
+  id: string;
+  title: string;
+  file: string;
+  html: string;
+}
+
+const isPage = (v: unknown): v is GuiPage => {
+  const p = v as GuiPage | null;
+  return !!p && typeof p.id === "string" && typeof p.title === "string" && typeof p.file === "string" && typeof p.html === "string";
+};
+
+const store = createLocalList<GuiPage>("mcgui:pages", isPage);
+export const savePages = store.save;
+
+// Shown until the first edit is saved. The fixed id keeps the server and client render equal.
+const FIRST_PAGE: GuiPage[] = [{ id: "first", title: "New page", file: "menu.html", html: TEMPLATES[0].html }];
+
+export function usePages() {
+  const pages = store.useList();
+  return pages.length > 0 ? pages : FIRST_PAGE;
+}
+
+function uniqueFile(name: string, pages: GuiPage[]) {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "page";
+  const taken = new Set(pages.map((p) => p.file));
+  let file = `${slug}.html`;
+  for (let n = 2; taken.has(file); n++) file = `${slug}-${n}.html`;
+  return file;
+}
+
+export function pageFromTemplate(template: Template, pages: GuiPage[]): GuiPage {
+  return {
+    id: crypto.randomUUID(),
+    title: template.id === "blank" ? "New page" : template.name,
+    file: uniqueFile(template.id === "blank" ? "page" : template.name, pages),
+    html: template.html,
+  };
+}
+
+// The command that opens a page in game: the file name without .html.
+export const pageCommand = (page: GuiPage) => `/mcgui open ${page.file.replace(/\.html$/, "")}`;
+
+export async function downloadZip(pages: GuiPage[]) {
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  zip.file("minecraft.css", PAGE_CSS);
+  for (const page of pages) zip.file(page.file, page.html);
+  const url = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "mcgui-pages.zip";
+  a.click();
+  URL.revokeObjectURL(url);
+}
