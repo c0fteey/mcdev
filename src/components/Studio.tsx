@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Plus, Send, Sparkles } from "lucide-react";
-import { describeClick, type PageLink } from "@/lib/gui/links";
+import { describeClick, renameLinks, type PageLink } from "@/lib/gui/links";
 import { blankPage, isUntouched, pageCommand, pagesFromTemplate, savePages, usePages, type GuiPage } from "@/lib/gui/pages";
 import type { Template } from "@/lib/gui/templateLibrary";
 import { SITE_NAME } from "@/lib/site";
@@ -31,6 +31,7 @@ const MapView = dynamic(() => import("./MapView"), {
 const TemplatePicker = dynamic(() => import("./TemplatePicker").then((m) => m.TemplatePicker), { ssr: false });
 
 const MAX_LOG_LINES = 8;
+const UNDO_MS = 8000;
 
 type View = "map" | "page" | "code";
 const VIEWS: { value: View; label: string; icon: typeof Code }[] = [
@@ -60,6 +61,7 @@ export default function Studio() {
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [log, setLog] = useState<ClickLogLine[]>([]);
+  const [undo, setUndo] = useState<{ message: string; pages: GuiPage[]; activeId: string } | null>(null);
   const nextLogId = useRef(0);
   const closePicker = useCallback(() => setPicking(false), []);
 
@@ -87,6 +89,22 @@ export default function Studio() {
 
   const updatePage = (patch: Partial<GuiPage>) => savePages(pages.map((p) => (p.id === page.id ? { ...p, ...patch } : p)));
 
+  // Replacing and deleting happen at once, with a moment to take them back.
+  const offerUndo = (message: string) => setUndo({ message, pages, activeId: page.id });
+
+  const takeBack = () => {
+    if (!undo) return;
+    savePages(undo.pages);
+    open(undo.activeId);
+    setUndo(null);
+  };
+
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [undo]);
+
   const addBlankPage = () => {
     const created = blankPage(pages);
     savePages([...pages, created]);
@@ -96,7 +114,7 @@ export default function Studio() {
 
   // A template is a whole project with its own first page, so it takes the place of the current pages.
   const applyTemplate = (template: Template) => {
-    if (!isUntouched(pages) && !window.confirm(`Replace your ${pages.length === 1 ? "page" : `${pages.length} pages`} with the ${template.name} template? This cannot be undone.`)) return;
+    if (!isUntouched(pages)) offerUndo(`Replaced with the ${template.name} template.`);
     const created = pagesFromTemplate(template);
     savePages(created);
     open(created[0].id);
@@ -105,7 +123,22 @@ export default function Studio() {
   };
 
   const deletePage = (target: GuiPage) => {
-    if (window.confirm(`Delete "${target.title}"? This cannot be undone.`)) savePages(pages.filter((p) => p.id !== target.id));
+    offerUndo(`Deleted ${target.title}.`);
+    savePages(pages.filter((p) => p.id !== target.id));
+  };
+
+  // Links in every page follow the new name, so nothing on the map comes apart.
+  const renameFile = (input: HTMLInputElement) => {
+    const slug = input.value.trim().toLowerCase().replace(/\.html$/, "").replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+    const file = `${slug}.html`;
+    if (!slug || pages.some((p) => p.id !== page.id && p.file === file)) {
+      setNotice(slug ? `There is already a page called ${file}.` : "A file needs a name.");
+      input.value = page.file;
+      return;
+    }
+    input.value = file;
+    if (file === page.file) return;
+    savePages(pages.map((p) => ({ ...p, file: p.id === page.id ? file : p.file, html: renameLinks(p.html, page.file, file) })));
   };
 
   const copyCommand = async () => {
@@ -207,7 +240,19 @@ export default function Studio() {
                     value={page.title}
                     onChange={(e) => updatePage({ title: e.target.value })}
                   />
-                  <span className="mr-1 hidden truncate font-mono text-[11px] text-muted sm:inline">{page.file}</span>
+                  <input
+                    key={page.file}
+                    aria-label="File name"
+                    title="The file name other pages link to"
+                    defaultValue={page.file}
+                    spellCheck={false}
+                    size={Math.max(page.file.length, 4)}
+                    className="mr-1 h-7 min-w-0 max-w-44 rounded-md border border-transparent bg-transparent px-1.5 font-mono text-[11px] text-muted outline-none transition-colors [field-sizing:content] hover:border-line focus:border-gold focus:text-ink"
+                    onBlur={(e) => renameFile(e.currentTarget)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.currentTarget.blur();
+                    }}
+                  />
                 </div>
                 <Segmented label="Preview mode" value={mode} onChange={changeMode} options={MODES} />
                 <p aria-live="polite" className="ml-auto flex min-w-0 items-center gap-1.5 pr-1 text-xs text-muted">
@@ -256,6 +301,15 @@ export default function Studio() {
       </div>
 
       {picking && <TemplatePicker onPick={applyTemplate} onClose={closePicker} />}
+
+      {undo && (
+        <div role="status" className="fixed bottom-4 left-1/2 z-[60] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl border border-line bg-raised py-1.5 pl-3 pr-1.5 text-[13px] shadow-[0_1px_2px_rgb(0_0_0/0.25),0_12px_32px_rgb(0_0_0/0.4)]">
+          <span className="min-w-0 truncate">{undo.message}</span>
+          <button type="button" className="btn-ghost h-7 text-gold hover:text-gold" onClick={takeBack}>
+            Undo
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -62,6 +62,7 @@ export function Preview({
   onClickLink,
   fill,
   thumbnail,
+  flush,
   showLinks = false,
 }: {
   html: string;
@@ -69,6 +70,7 @@ export function Preview({
   onClickLink?: (link: PageLink, index: number, element: Element) => void;
   fill?: boolean;
   thumbnail?: boolean;
+  flush?: boolean;
   showLinks?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -95,7 +97,7 @@ export function Preview({
     <div ref={box} className={`flex items-center justify-center overflow-hidden ${fill ? "size-full" : "aspect-video w-full"}`}>
       <div
         className={`relative shrink-0 overflow-hidden ${
-          thumbnail ? "rounded-[3px]" : fill ? "rounded-lg shadow-[0_1px_2px_rgb(0_0_0/0.3),0_16px_48px_rgb(0_0_0/0.35)]" : "rounded-md"
+          flush ? "" : thumbnail ? "rounded-[3px]" : fill ? "rounded-lg shadow-[0_1px_2px_rgb(0_0_0/0.3),0_16px_48px_rgb(0_0_0/0.35)]" : "rounded-md"
         }`}
         style={{ width: WIDTH * scale, height: HEIGHT * scale, background: WORLD_BACKDROP, visibility: scale ? undefined : "hidden" }}
       >

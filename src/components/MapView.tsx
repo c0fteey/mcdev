@@ -1,25 +1,40 @@
 "use client";
 
 import { createContext, useContext, useMemo } from "react";
-import { Handle, Position, ReactFlow, ReactFlowProvider, useReactFlow, useViewport, type Edge, type Node, type NodeProps } from "@xyflow/react";
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+  Handle,
+  Position,
+  ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
+  useViewport,
+  type Edge,
+  type EdgeProps,
+  type Node,
+  type NodeProps,
+} from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Home, Maximize } from "lucide-react";
 import { findLinks } from "@/lib/gui/links";
 import type { GuiPage } from "@/lib/gui/pages";
 import { Preview } from "./Preview";
 
-const COLUMN_WIDTH = 340;
-const ROW_HEIGHT = 200;
+const COLUMN_WIDTH = 288;
+const ROW_HEIGHT = 146;
 const FIT = { padding: 0.25, maxZoom: 1.15 };
 
 // Nodes read live values from here, so typing in a page never rebuilds the graph.
 const MapContext = createContext<{ pages: GuiPage[]; selectedId: string }>({ pages: [], selectedId: "" });
 
 const pageTargets = (page: GuiPage, pages: GuiPage[]) =>
-  findLinks(page.html).flatMap(({ label, link }) => {
+  findLinks(page.html).flatMap(({ label, key, link }) => {
     if (link.kind !== "page") return [];
     const target = pages.find((p) => p.file === link.file);
-    return target && target.id !== page.id ? [{ label, target }] : [];
+    // A button with a key is named by the key, which is what the player presses.
+    return target && target.id !== page.id ? [{ label: key?.toUpperCase() ?? label, target }] : [];
   });
 
 // Walks out from the page that opens first; each step away from it is a column to the right.
@@ -59,14 +74,10 @@ function buildGraph(pages: GuiPage[]) {
       return [
         {
           id: pair,
+          type: "page",
           source: page.id,
           target: target.id,
           label,
-          style: { stroke: "var(--color-gold)", strokeWidth: 1.5 },
-          labelStyle: { fill: "var(--color-gold)", fontSize: 12, fontWeight: 600 },
-          labelBgStyle: { fill: "var(--color-surface)", stroke: "var(--color-gold)", strokeWidth: 1 },
-          labelBgPadding: [7, 4] as [number, number],
-          labelBgBorderRadius: 6,
         },
       ];
     }),
@@ -81,17 +92,15 @@ function PageNode({ id }: NodeProps) {
   const index = pages.findIndex((p) => p.id === id);
   const page = pages[index];
   if (!page) return null;
-  const links = findLinks(page.html).length;
+  const links = findLinks(page.html).filter(({ link }) => link.kind === "page").length;
   return (
-    <div className={`w-56 cursor-pointer overflow-hidden rounded-xl border bg-surface transition-colors ${page.id === selectedId ? "border-gold" : "border-line hover:border-muted"}`}>
+    <div className={`w-40 cursor-pointer overflow-hidden rounded-xl border bg-surface transition-colors ${page.id === selectedId ? "border-gold" : "border-line hover:border-muted"}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} className={HIDDEN_HANDLE} />
-      <div className="p-1">
-        <Preview html={page.html} title={`${page.title} preview`} />
-      </div>
-      <div className="flex items-center justify-between gap-2 px-2.5 pb-2 pt-1">
+      <Preview flush html={page.html} title={`${page.title} preview`} />
+      <div className="flex items-center justify-between gap-2 px-2 py-1.5">
         <span className="min-w-0">
-          <span className="block truncate text-[13px] font-semibold text-ink">{page.title}</span>
-          <span className="block text-[11px] text-muted">
+          <span className="block truncate text-xs font-semibold text-ink">{page.title}</span>
+          <span className="block text-[11px] leading-tight text-muted">
             {links} {links === 1 ? "link" : "links"}
           </span>
         </span>
@@ -103,6 +112,28 @@ function PageNode({ id }: NodeProps) {
 }
 
 const NODE_TYPES = { page: PageNode };
+
+// Square elbows with the button's name on a chip; lines touching the chosen page turn gold.
+function PageEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, label }: EdgeProps) {
+  const { selectedId } = useContext(MapContext);
+  const active = source === selectedId || target === selectedId;
+  const [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 8 });
+  return (
+    <>
+      <BaseEdge id={id} path={path} style={{ stroke: active ? "var(--color-gold)" : "var(--color-muted)", strokeWidth: 1.5 }} />
+      <EdgeLabelRenderer>
+        <div
+          className={`pointer-events-none absolute max-w-28 truncate rounded-md border bg-raised px-1.5 py-0.5 text-[11px] font-semibold leading-4 ${active ? "border-gold text-gold" : "border-line text-ink"}`}
+          style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
+        >
+          {label}
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
+const EDGE_TYPES = { page: PageEdge };
 
 function MapBar() {
   const { fitView } = useReactFlow();
@@ -148,6 +179,7 @@ export default function MapView({
             defaultNodes={graph.nodes}
             defaultEdges={graph.edges}
             nodeTypes={NODE_TYPES}
+            edgeTypes={EDGE_TYPES}
             nodesConnectable={false}
             edgesFocusable={false}
             fitView

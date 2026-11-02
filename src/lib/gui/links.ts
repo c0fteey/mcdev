@@ -57,9 +57,24 @@ function writeLink(el: Element, link: PageLink) {
 
 const parse = (html: string) => new DOMParser().parseFromString(html, "text/html");
 
+// A button's words, without the key hint drawn inside it.
+function buttonText(el: Element) {
+  const copy = el.cloneNode(true) as Element;
+  copy.querySelectorAll(".mc-key").forEach((key) => key.remove());
+  return copy.textContent?.trim().replace(/\s+/g, " ").slice(0, 40) ?? "";
+}
+
+// Points every link in a page at a renamed file.
+export function renameLinks(html: string, from: string, to: string) {
+  const name = (file: string) => file.replace(/\.html$/, "");
+  return html
+    .replace(/(href=["'])([^"']+)(["'])/g, (match, open: string, target: string, close: string) => (target === from ? open + to + close : match))
+    .replace(/(data-action=["']page:)([^"']+)(["'])/g, (match, open: string, target: string, close: string) => (target === name(from) ? open + name(to) + close : match));
+}
+
 export function findLinks(html: string) {
   return [...parse(html).querySelectorAll(LINK_SELECTOR)].map((el) => ({
-    label: el.textContent?.trim().replace(/\s+/g, " ").slice(0, 40) || el.tagName.toLowerCase(),
+    label: buttonText(el) || el.tagName.toLowerCase(),
     tag: el.tagName === "A" ? "link" : el.tagName.toLowerCase(),
     key: el.getAttribute("data-key"),
     link: readLink(el),
