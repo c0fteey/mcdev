@@ -40,5 +40,5 @@ export function createLocalList<T>(key: string, isItem: (v: unknown) => v is T) 
     );
   }
 
-  return { save, useList };
+  return { read, save, useList };
 }

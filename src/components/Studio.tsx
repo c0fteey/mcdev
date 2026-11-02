@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowUp, Code, LayoutPanelTop, LayoutTemplate, Link2, MousePointerClick, Network, Paperclip, Play, Send, Sparkles } from "lucide-react";
 import { describeClick, elementPath, renameLinks, type PageLink } from "@/lib/gui/links";
-import { blankPage, downloadZip, firstBlankPage, htmlWithTitle, pageCommand, pagesFromTemplate, titleInHtml, useProjects, useProjectUrl, type GuiPage } from "@/lib/gui/pages";
+import { addSharedProject, blankPage, downloadZip, firstBlankPage, htmlWithTitle, pageCommand, pagesFromTemplate, titleInHtml, useProjects, useProjectUrl, type GuiPage } from "@/lib/gui/pages";
 import type { Template } from "@/lib/gui/templateLibrary";
 import { SITE_NAME } from "@/lib/site";
 import { ClickLog, type ClickLogLine } from "./ClickLog";
@@ -69,6 +69,26 @@ export default function Studio() {
   const closePicker = useCallback(() => setPicking(false), []);
   const [sending, setSending] = useState(false);
   const closeSend = useCallback(() => setSending(false), []);
+
+  // A ?s= link opens the shared project as this visitor's own copy, once.
+  const readShareLink = useRef(false);
+  useEffect(() => {
+    if (readShareLink.current) return;
+    readShareLink.current = true;
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("s");
+    if (!code) return;
+    url.searchParams.delete("s");
+    window.history.replaceState(null, "", url);
+    fetch(`/api/shares/${encodeURIComponent(code)}`)
+      .then(async (response) => {
+        const data = (await response.json()) as { pages?: Omit<GuiPage, "id">[]; error?: string };
+        if (!data.pages) return setNotice(data.error ?? "Could not open that link.");
+        setActiveId(addSharedProject(data.pages));
+        setNotice("Opened your own copy of the shared project.");
+      })
+      .catch(() => setNotice("Could not open that link. Check your connection and try again."));
+  }, []);
 
   // Stored pages arrive after hydration, so the first page is the fallback until one is chosen.
   const page = pages.find((p) => p.id === activeId) ?? pages[0];
@@ -332,7 +352,7 @@ export default function Studio() {
 
       {sending && (
         <SendDialog
-          projectId={currentId}
+          pages={pages}
           openCommand={pageCommand(pages[0])}
           onExport={() => {
             downloadZip(pages);

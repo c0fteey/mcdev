@@ -1,20 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, Download, Link2, Terminal, TriangleAlert, X } from "lucide-react";
+import { Check, Copy, Download, Link2, Loader2, Terminal, TriangleAlert, X } from "lucide-react";
+import type { GuiPage } from "@/lib/gui/pages";
 import { IconButton } from "./ui";
-
-// Stands in for the code the server will issue. The same project always gets the same one.
-function draftCode(projectId: string) {
-  const letters = "abcdefghjkmnpqrstuvwxyz";
-  let hash = 2166136261;
-  let code = "";
-  for (let i = 0; i < 8; i++) {
-    for (const char of projectId + i) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0;
-    code += letters[hash % letters.length];
-  }
-  return code;
-}
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
@@ -40,18 +29,41 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 const CODE_STYLE = "font-mono text-ink";
 
+type Share = { status: "sending" } | { status: "ready"; code: string } | { status: "failed"; message: string };
+
 export function SendDialog({
-  projectId,
+  pages,
   openCommand,
   onExport,
   onClose,
 }: {
-  projectId: string;
+  pages: GuiPage[];
   openCommand: string;
   onExport: () => void;
   onClose: () => void;
 }) {
-  const code = draftCode(projectId);
+  // What was on screen when the dialog opened is what gets shared.
+  const [snapshot] = useState(pages);
+  const [share, setShare] = useState<Share>({ status: "sending" });
+
+  useEffect(() => {
+    const request = new AbortController();
+    fetch("/api/shares", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pages: snapshot.map(({ title, file, html }) => ({ title, file, html })) }),
+      signal: request.signal,
+    })
+      .then(async (response) => {
+        const data = (await response.json()) as { code?: string; error?: string };
+        if (response.ok && data.code) setShare({ status: "ready", code: data.code });
+        else setShare({ status: "failed", message: data.error ?? "Could not share right now. Try again." });
+      })
+      .catch(() => {
+        if (!request.signal.aborted) setShare({ status: "failed", message: "Could not reach the server. Check your connection and try again." });
+      });
+    return () => request.abort();
+  }, [snapshot]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -60,6 +72,8 @@ export function SendDialog({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  const title = share.status === "ready" ? "Shared" : share.status === "sending" ? "Sharing…" : "Could not share";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-3 backdrop-blur-[2px]" onClick={onClose}>
@@ -71,40 +85,52 @@ export function SendDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line pl-4 pr-2.5">
-          <h2 id="send-title" className="text-[15px] font-semibold">
-            Send to server
+          <h2 id="send-title" aria-live="polite" className="text-[15px] font-semibold">
+            {title}
           </h2>
           <IconButton label="Close" icon={X} onClick={onClose} />
         </div>
 
         <div className="flex flex-col gap-4 p-4">
-          <p className="flex gap-2 rounded-lg border border-gold/30 bg-gold/10 p-2.5 text-[13px] leading-snug">
-            <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-gold" aria-hidden />
-            <span>Not live yet. Nothing is uploaded, so this code and link won&apos;t work until the plugin is ready. Use Export to move your pages today.</span>
-          </p>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="label flex items-center gap-1.5">
-              <Terminal className="size-3.5" aria-hidden />
-              Put it on your server
-            </h3>
-            <CopyField label="the import command" value={`/mcgui import ${code}`} />
-            <p className="text-[13px] leading-relaxed text-muted">
-              Run it in game or in the console on a server with the plugin. The files land in <span className={CODE_STYLE}>plugins/MCGUI/pages/</span>, then{" "}
-              <span className={CODE_STYLE}>{openCommand}</span> shows it.
+          {share.status === "sending" && (
+            <p className="flex items-center gap-2 text-[13px] text-muted">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              Saving a copy of this project…
             </p>
-          </section>
+          )}
 
-          <section className="flex flex-col gap-2">
-            <h3 className="label flex items-center gap-1.5">
-              <Link2 className="size-3.5" aria-hidden />
-              Link to this version
-            </h3>
-            <CopyField label="the link" value={`${window.location.origin}/?s=${code}`} />
-            <p className="text-[13px] leading-relaxed text-muted">Anyone with the link will open their own copy to change.</p>
-          </section>
+          {share.status === "failed" && (
+            <p className="flex gap-2 rounded-lg border border-gold/30 bg-gold/10 p-2.5 text-[13px] leading-snug">
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-gold" aria-hidden />
+              <span>{share.message} Export still works for moving your pages.</span>
+            </p>
+          )}
 
-          <button type="button" className="btn-gold h-10" onClick={onExport}>
+          {share.status === "ready" && (
+            <>
+              <section className="flex flex-col gap-2">
+                <h3 className="label flex items-center gap-1.5">
+                  <Link2 className="size-3.5" aria-hidden />
+                  Link to this version
+                </h3>
+                <CopyField label="the link" value={`${window.location.origin}/?s=${share.code}`} />
+                <p className="text-[13px] leading-relaxed text-muted">Anyone with the link opens their own copy to change.</p>
+              </section>
+
+              <section className="flex flex-col gap-2">
+                <h3 className="label flex items-center gap-1.5">
+                  <Terminal className="size-3.5" aria-hidden />
+                  Put it on your server
+                </h3>
+                <CopyField label="the import command" value={`/mcgui import ${share.code}`} />
+                <p className="text-[13px] leading-relaxed text-muted">
+                  This works once our plugin is out. The files will land in <span className={CODE_STYLE}>plugins/MCGUI/pages/</span>, then <span className={CODE_STYLE}>{openCommand}</span> shows it.
+                </p>
+              </section>
+            </>
+          )}
+
+          <button type="button" className={share.status === "failed" ? "btn-gold h-10" : "btn-ghost h-10 border border-line"} onClick={onExport}>
             <Download className="size-3.5" aria-hidden />
             Export instead
           </button>

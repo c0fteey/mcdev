@@ -45,6 +45,20 @@ function randomProjectId() {
   return Array.from(crypto.getRandomValues(new Uint8Array(10)), (byte) => alphabet[byte % alphabet.length]).join("");
 }
 
+// Opens someone's shared project as your own copy. It runs after a network wait, so it reads the
+// saved projects fresh rather than trusting what a render saw earlier.
+export function addSharedProject(shared: Omit<GuiPage, "id">[]) {
+  const pages = shared.map((page) => ({ ...page, id: crypto.randomUUID() }));
+  const id = randomProjectId();
+  const saved = projectStore.read();
+  const legacy = legacyStore.read();
+  // Pages from before projects existed must not vanish when the first project is saved.
+  const earlier = saved.length === 0 && legacy.length > 0 ? [{ id: randomProjectId(), pages: legacy, updatedAt: Date.now() }] : saved;
+  projectStore.save([{ id, pages, updatedAt: Date.now() }, ...earlier]);
+  currentStore.save([id]);
+  return pages[0].id;
+}
+
 // Keeps ?p= in the address bar on the open project, and opens the project a link names.
 export function useProjectUrl(currentId: string, savedIds: string[]) {
   const read = useRef(false);
