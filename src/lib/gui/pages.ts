@@ -65,6 +65,13 @@ export function useProjectUrl(currentId: string, savedIds: string[]) {
   const known = savedIds.join();
   useEffect(() => {
     if (!known) return;
+    // "first" only names the project before it is saved, but some were saved under it.
+    if (known.split(",").includes("first")) {
+      const id = randomProjectId();
+      projectStore.save(projectStore.read().map((p) => (p.id === "first" ? { ...p, id } : p)));
+      if (currentId === "first") currentStore.save([id]);
+      return;
+    }
     const url = new URL(window.location.href);
     if (!read.current) {
       read.current = true;
